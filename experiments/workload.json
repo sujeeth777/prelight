@@ -1,0 +1,51 @@
+{
+  "workload_name": "prelight_baseline_v1",
+  "description": "Initial mixed inference workload for Prelight",
+  "requests": [
+    {
+      "id": "short-001",
+      "category": "short",
+      "prompt": "Summarize the purpose of an AI inference server in one paragraph."
+    },
+    {
+      "id": "short-002",
+      "category": "short",
+      "prompt": "What are the three most important metrics for monitoring an AI inference service?"
+    },
+    {
+      "id": "short-003",
+      "category": "short",
+      "prompt": "Explain time to first token in simple technical terms."
+    },
+    {
+      "id": "medium-001",
+      "category": "medium",
+      "prompt": "Analyze this situation: an AI inference service is receiving requests normally, but users report that responses have become slower. List the most likely infrastructure causes and explain how each could be investigated."
+    },
+    {
+      "id": "medium-002",
+      "category": "medium",
+      "prompt": "Design a monitoring strategy for a GPU-based large language model inference service. Include latency, throughput, GPU utilization, errors, queueing, and memory-related signals."
+    },
+    {
+      "id": "medium-003",
+      "category": "medium",
+      "prompt": "A new inference configuration has been deployed. Explain how an engineering team should compare it against the previous configuration before approving a global rollout."
+    },
+    {
+      "id": "medium-004",
+      "category": "medium",
+      "prompt": "Explain how increased request concurrency can affect an LLM inference server. Discuss latency, throughput, GPU utilization, queueing, and possible failure modes."
+    },
+    {
+      "id": "long-001",
+      "category": "long",
+      "prompt": "You are investigating an AI infrastructure incident. A production language-model service runs on NVIDIA GPUs. Over the last hour, average response latency increased while request volume remained approximately constant. GPU utilization appears high, but throughput has decreased. Some users report that the first token arrives much later than before, while generation after the first token appears relatively normal. Analyze the possible causes across the application, inference engine, batching behavior, GPU utilization, memory or KV-cache pressure, request queueing, and infrastructure layers. Explain what measurements should be collected to distinguish these causes and propose a systematic investigation plan."
+    },
+    {
+      "id": "long-002",
+      "category": "long",
+      "prompt": "You are designing a safe validation process for a proposed change to an NVIDIA-powered AI inference environment. The change could affect model serving behavior, latency, throughput, GPU utilization, or reliability. Explain how to construct a representative benchmark workload, establish a baseline, execute repeated candidate experiments, compare the results statistically, identify workload-specific regressions, and determine whether the change should be approved, warned, or blocked. The process should prioritize measured evidence rather than relying only on predictions from an AI model."
+    }
+  ]
+}

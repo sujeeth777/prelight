@@ -1,0 +1,21 @@
+{
+  "change_id": "CHG-001",
+  "title": "Change Nemotron generation configuration",
+  "component": "inference",
+  "target": {
+    "environment": "nebius-token-factory",
+    "workload": "prelight_baseline_v1"
+  },
+  "risk_level": "MEDIUM",
+  "changes": [
+    {
+      "parameter": "max_tokens",
+      "current": 300,
+      "proposed": 350
+    }
+  ],
+  "risk_factors": [
+    "Increasing max_tokens may increase generation latency and resource usage."
+  ],
+  "requires_experiment": true
+}

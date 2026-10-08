@@ -1,0 +1,26 @@
+{
+  "change_id": "CHG-001",
+  "title": "Change Nemotron generation configuration",
+  "component": "inference",
+  "description": "Evaluate a proposed change to the inference generation configuration before wider rollout.",
+  "current_state": {
+    "model": "nvidia/Nemotron-3_5-Lightning",
+    "max_tokens": 300,
+    "temperature": 0.2
+  },
+  "proposed_state": {
+    "model": "nvidia/Nemotron-3_5-Lightning",
+    "max_tokens": 350,
+    "temperature": 0.2
+  },
+  "target": {
+    "environment": "nebius-token-factory",
+    "workload": "prelight_baseline_v1"
+  },
+  "risk_policy": {
+    "warn_threshold_percent": 10,
+    "block_threshold_percent": 20,
+    "error_warn_threshold_percent": 1,
+    "error_block_threshold_percent": 5
+  }
+}

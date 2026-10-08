@@ -1,0 +1,66 @@
+{
+  "change_id": "CHG-001",
+  "decision_stage": "EXPERIMENT_PLANNING",
+  "source": "NVIDIA Nemotron 3.5 Lightning",
+  "risk_assessment": {
+    "risk_level": "MEDIUM",
+    "reason": "Increasing max_tokens may increase generation latency and resource usage."
+  },
+  "nemotron_reasoning": "Here's a thinking process:\n\n1.  **Analyze the Request:**\n   - User provides a proposed change (CHG-001) for \"Change Nemotron generation configuration\"\n   - Current state: model Nemotron-3_5-Lightning, max_tokens=300, temperature=0.2\n   - Proposed state: same model, max_tokens=500, temperature=0.2\n   - Target: nebius-token-factory environment, workload prelight_baseline_v1\n   - Risk policy: warn at 10%, block at 20%\n   - Existing change analysis notes: MEDIUM risk, increasing max_tokens may increase latency/resource usage, requires experiment\n   - I need to create an engineering experiment plan\n   - Must use exactly these headings: RISK:, OBJECTIVE:, BASELINE:, CANDIDATE:, WORKLOAD:, METRICS:, COMPARISON:, WARN:, BLOCK:\n   - Keep entire response below 700 words\n   - Do not make final SAFE/WARN/BLOCK decision\n   - Experiment has not happened yet\n   - Do not invent experimental measurements\n   - Return concise plain-text engineering plan\n\n2.  **Deconstruct the Input & Extract Requirements:**\n   - Change: max_tokens from 300 to 500, temperature stays 0.2\n   - Component: inference\n   - Target environment/workload specified\n   - Risk policy thresholds given (10% warn, 20% block)\n   - Existing analysis says MEDIUM risk, focuses on latency/resource usage increase\n   - I need to plan the experiment but NOT run it, NOT invent measurements, and NOT give final decision\n\n3.  **Formulate the Plan Structure per Headings:**\n   I need to fill each heading concisely with relevant engineering reasoning based on the provided data, without inventing new metrics or results.\n\n   Let's draft each section:\n\n   **RISK:** \n   - Increasing max_tokens from 300 to 500 (66.7% increase) while keeping temperature constant.\n   - Primary risk: higher generation latency per request, increased GPU memory/vRAM consumption, potentially higher throughput cost.\n   - Secondary risk: if outputs become longer, may affect downstream task quality or alignment without temperature adjustment.\n   - Risk level MEDIUM per existing analysis, driven by resource/contention impact in shared nebius-token-factory environment.\n\n   **OBJECTIVE:** \n   - Evaluate the impact of doubling max_tokens (300\u2192500) on inference latency, resource utilization, and output completeness for the prelight_baseline_v1 workload in nebius-token-factory, before wider rollout.\n\n   **BASELINE:** \n   - Current configuration: model nvidia/Nemotron-3_5-Lightning, max_tokens=300, temperature=0.2\n   - Running workload: prelight_baseline_v1 on nebius-token-factory\n   - Reference measurements: latency, token throughput, GPU memory, error rates at current max_tokens\n\n   **CANDIDATE:** \n   - Proposed configuration: same model, max_tokens=500, temperature=0.2\n   - Same workload on nebius-token-factory\n   - Intended to capture longer-generation behavior effects\n\n   **WORKLOAD:** \n   - prelight_baseline_v1 (as specified in target)\n   - Run in nebius-token-factory environment\n   - Same prompt/distribution as current baseline\n\n   **METRICS:** \n   - Generation latency (time-to-first-token, total time)\n   - Tokens per second throughput\n   - GPU memory footprint / vRAM usage per request\n   - Request success/error rate\n   - Output length distribution (actual tokens generated vs max_tokens)\n   - These are the metrics to compare; I won't invent actual measured values.\n\n   **COMPARISON:** \n   - Compare baseline vs candidate across the defined metrics.\n   - Compute percent change for each metric.\n   - Identify direction and magnitude of differences.\n\n   **WARN:** \n   - Trigger if any metric shows degradation exceeding the risk_policy warn_threshold_percent (10%) relative to baseline.\n   - Specifically",
+  "experiment": {
+    "objective": "Measure the effect of the proposed inference configuration change against the existing configuration using the same workload.",
+    "baseline_configuration": {
+      "description": "Model: nvidia/Nemotron-3_5-Lightning; max_tokens: 300; temperature: 0.2."
+    },
+    "candidate_configuration": {
+      "description": "Model: nvidia/Nemotron-3_5-Lightning; max_tokens: 500; temperature: 0.2."
+    },
+    "workload_requirements": [
+      "Use the same workload for baseline and candidate.",
+      "Execute the complete Prelight workload.",
+      "Keep model and temperature constant unless the change explicitly modifies them.",
+      "Record successful and failed requests.",
+      "Do not use unreliable streaming-derived generation speed for safety decisions."
+    ],
+    "metrics": [
+      "TTFT",
+      "total_latency",
+      "error_rate"
+    ],
+    "comparison_method": "Compare baseline and candidate distributions using mean and P95 TTFT, mean and P95 total latency, and error rate. Evaluate degradation relative to the established baseline.",
+    "minimum_successful_requests": 9
+  },
+  "safety_rules": [
+    {
+      "metric": "TTFT",
+      "condition": "relative increase greater than 10%",
+      "severity": "WARN",
+      "reason": "A meaningful increase in time to first response can reduce inference responsiveness."
+    },
+    {
+      "metric": "TTFT",
+      "condition": "relative increase greater than 20%",
+      "severity": "BLOCK",
+      "reason": "A large and repeatable TTFT regression indicates the proposed change may negatively affect production."
+    },
+    {
+      "metric": "total_latency",
+      "condition": "relative increase greater than 10%",
+      "severity": "WARN",
+      "reason": "Increased end-to-end latency can degrade workload performance."
+    },
+    {
+      "metric": "total_latency",
+      "condition": "relative increase greater than 20%",
+      "severity": "BLOCK",
+      "reason": "A large latency regression is considered unsafe for broad rollout."
+    },
+    {
+      "metric": "error_rate",
+      "condition": "candidate error rate exceeds 5%",
+      "severity": "BLOCK",
+      "reason": "A high request failure rate indicates an unsafe candidate."
+    }
+  ],
+  "recommendation": "PENDING_EXPERIMENT_RESULTS"
+}

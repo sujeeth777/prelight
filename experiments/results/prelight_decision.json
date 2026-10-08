@@ -1,0 +1,43 @@
+{
+  "baseline": {
+    "runs": 3,
+    "mean_ttft": 4614.224074074074,
+    "median_ttft": 1929.44,
+    "p95_ttft": 25952.170000000002,
+    "mean_latency": 4661.326296296296,
+    "median_latency": 1996.91,
+    "p95_latency": 26084.000000000004,
+    "error_rate": 0.0
+  },
+  "candidate": {
+    "requests": 9,
+    "successful": 9,
+    "failed": 0,
+    "error_rate": 0.0,
+    "ttft": {
+      "mean": 1856.9288888888889,
+      "median": 1885.37,
+      "p95": 2256.38
+    },
+    "latency": {
+      "mean": 1880.5955555555556,
+      "median": 1888.3,
+      "p95": 2261.01
+    }
+  },
+  "decision": {
+    "decision": "SAFE",
+    "risk": "LOW",
+    "confidence": 0.85,
+    "metrics": {
+      "mean_ttft_change_percent": -59.76,
+      "p95_ttft_change_percent": -91.31,
+      "mean_latency_change_percent": -59.66,
+      "p95_latency_change_percent": -91.33,
+      "error_rate_percent": 0.0
+    },
+    "reasons": [
+      "No configured regression threshold was exceeded."
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "change_id": "CHG-001",
+  "status": "SAFE",
+  "action": "CONTROLLED_ROLLOUT",
+  "summary": "The proposed change remained within Prelight's configured safety thresholds.",
+  "steps": [
+    {
+      "step": 1,
+      "action": "CANARY",
+      "description": "Deploy the validated configuration to a controlled percentage of traffic."
+    },
+    {
+      "step": 2,
+      "action": "MONITOR",
+      "description": "Monitor latency, TTFT, throughput, GPU resource usage, and errors."
+    },
+    {
+      "step": 3,
+      "action": "PROMOTE",
+      "description": "Expand deployment if production measurements remain healthy."
+    }
+  ],
+  "rollout_policy": "Controlled rollout followed by monitored promotion."
+}
