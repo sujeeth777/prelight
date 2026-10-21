@@ -11,7 +11,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.paired_validation import MIN_PAIRED_ROUNDS, build_paired_decision
 from backend.prelight_pipeline import paired_round_orders, run_pipeline
@@ -39,17 +39,21 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
+        origin.strip()
+        for origin in os.environ.get(
+            "PRELIGHT_CORS_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000",
+        ).split(",")
+        if origin.strip()
     ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 
 class ValidationRequest(BaseModel):
-    max_tokens: int | None = None
+    max_tokens: int | None = Field(default=None, ge=1, le=4096)
 
 
 def load_json(path: Path, default: Any = None) -> Any:
@@ -741,7 +745,7 @@ def api_validate(request: ValidationRequest):
 
 
 class BoundaryRequest(BaseModel):
-    values: list[int] | None = None
+    values: list[int] | None = Field(default=None, max_length=MAX_BOUNDARY_VALUES)
 
 
 @app.post("/api/boundary")

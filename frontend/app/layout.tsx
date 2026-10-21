@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,8 +12,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = { themeColor: "#07090d", colorScheme: "dark" };
+
 export const metadata: Metadata = {
   title: "Prelight | AI Infrastructure Safety",
+  openGraph: { title: "Prelight", description: "Prove an AI infrastructure change is safe before it ships." },
   description:
     "Validate AI infrastructure changes with paired experiments and evidence-backed rollout decisions.",
 };
