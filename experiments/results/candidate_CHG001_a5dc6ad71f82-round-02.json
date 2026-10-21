@@ -1,0 +1,151 @@
+{
+  "run_id": "candidate-20261013-155155-fd2955",
+  "experiment": {
+    "id": "candidate-20261013-155155-fd2955",
+    "run_id": "candidate-20261013-155155-fd2955",
+    "type": "candidate",
+    "name": "prelight_candidate_CHG-001",
+    "change_id": "CHG-001",
+    "change_title": "Change Nemotron generation configuration",
+    "pair_id": "a5dc6ad71f82-round-02",
+    "workload_fingerprint": "ad09216223b26a3ae34d98e9f8e364506137685bcf0033b4df6d5c7ae27afd79",
+    "model": "nvidia/Nemotron-3_5-Lightning",
+    "configuration": {
+      "max_tokens": 500,
+      "temperature": 0.2
+    },
+    "measurement": {
+      "ttft_definition": "time_to_first_content",
+      "throughput_definition": "total_output_tokens_divided_by_experiment_duration"
+    },
+    "started_at": "2026-10-13T10:21:55.049269+00:00",
+    "finished_at": "2026-10-13T10:22:24.158092+00:00",
+    "duration_seconds": 29.107
+  },
+  "summary": {
+    "total_requests": 9,
+    "successful_requests": 9,
+    "failed_requests": 0,
+    "error_rate_percent": 0.0,
+    "ttft_mean_ms": 3038.6,
+    "ttft_median_ms": 3068.41,
+    "ttft_p50_ms": 3068.41,
+    "ttft_p95_ms": 3444.16,
+    "latency_mean_ms": 3232.88,
+    "latency_median_ms": 3256.07,
+    "latency_p50_ms": 3256.07,
+    "latency_p95_ms": 3530.69,
+    "total_output_tokens": 4423,
+    "aggregate_output_tokens_per_second": 151.96
+  },
+  "requests": [
+    {
+      "request_id": "short-001",
+      "category": "short",
+      "status": "success",
+      "ttft_ms": 3068.41,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 3502.49,
+      "output_tokens": 423,
+      "output_characters": 588,
+      "error": null,
+      "timestamp": "2026-10-13T10:21:58.554346+00:00"
+    },
+    {
+      "request_id": "short-002",
+      "category": "short",
+      "status": "success",
+      "ttft_ms": 3162.03,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 3256.07,
+      "output_tokens": 500,
+      "output_characters": 144,
+      "error": null,
+      "timestamp": "2026-10-13T10:22:01.811154+00:00"
+    },
+    {
+      "request_id": "short-003",
+      "category": "short",
+      "status": "success",
+      "ttft_ms": 2395.96,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 3134.76,
+      "output_tokens": 500,
+      "output_characters": 804,
+      "error": null,
+      "timestamp": "2026-10-13T10:22:04.947058+00:00"
+    },
+    {
+      "request_id": "medium-001",
+      "category": "medium",
+      "status": "success",
+      "ttft_ms": 2818.45,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 2821.0,
+      "output_tokens": 500,
+      "output_characters": 2464,
+      "error": null,
+      "timestamp": "2026-10-13T10:22:07.769773+00:00"
+    },
+    {
+      "request_id": "medium-002",
+      "category": "medium",
+      "status": "success",
+      "ttft_ms": 2925.87,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 3008.71,
+      "output_tokens": 500,
+      "output_characters": 90,
+      "error": null,
+      "timestamp": "2026-10-13T10:22:10.779959+00:00"
+    },
+    {
+      "request_id": "medium-003",
+      "category": "medium",
+      "status": "success",
+      "ttft_ms": 3178.73,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 3179.5,
+      "output_tokens": 500,
+      "output_characters": 2493,
+      "error": null,
+      "timestamp": "2026-10-13T10:22:13.960873+00:00"
+    },
+    {
+      "request_id": "medium-004",
+      "category": "medium",
+      "status": "success",
+      "ttft_ms": 3547.38,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 3549.49,
+      "output_tokens": 500,
+      "output_characters": 2422,
+      "error": null,
+      "timestamp": "2026-10-13T10:22:17.511392+00:00"
+    },
+    {
+      "request_id": "long-001",
+      "category": "long",
+      "status": "success",
+      "ttft_ms": 3289.33,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 3291.01,
+      "output_tokens": 500,
+      "output_characters": 2645,
+      "error": null,
+      "timestamp": "2026-10-13T10:22:20.803587+00:00"
+    },
+    {
+      "request_id": "long-002",
+      "category": "long",
+      "status": "success",
+      "ttft_ms": 2961.28,
+      "ttft_definition": "time_to_first_content",
+      "total_latency_ms": 3352.89,
+      "output_tokens": 500,
+      "output_characters": 295,
+      "error": null,
+      "timestamp": "2026-10-13T10:22:24.157981+00:00"
+    }
+  ]
+}

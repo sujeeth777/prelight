@@ -1,0 +1,165 @@
+{
+  "tested_values": [
+    300,
+    350,
+    400,
+    500
+  ],
+  "safe_operating_boundary": 400,
+  "status": "WARN",
+  "summary": "The safe operating boundary is around 400 tokens. This is the highest tested configuration that remained inside the configured safety thresholds.",
+  "results": [
+    {
+      "max_tokens": 300,
+      "status": "SAFE",
+      "decision": {
+        "status": "SAFE",
+        "reason": "The candidate experiment remained within the configured safety thresholds.",
+        "recommendation": "The change is eligible for controlled rollout with continued monitoring."
+      },
+      "comparison": {
+        "mean_ttft_change_percent": -10.1,
+        "p95_ttft_change_percent": -8.13,
+        "mean_latency_change_percent": -10.05,
+        "p95_latency_change_percent": -8.14,
+        "error_rate_change_percent": 0.0
+      },
+      "baseline": {
+        "file": "baseline_20261006_214309.json",
+        "mean_ttft_ms": 2081.05,
+        "p95_ttft_ms": 2205.3,
+        "mean_latency_ms": 2083.32,
+        "p95_latency_ms": 2208.58,
+        "error_rate_percent": 0.0
+      },
+      "candidate": {
+        "file": "candidate_CHG001_20261008_225714.json",
+        "mean_ttft_ms": 1870.85,
+        "p95_ttft_ms": 2026.04,
+        "mean_latency_ms": 1873.96,
+        "p95_latency_ms": 2028.87,
+        "error_rate_percent": 0.0
+      },
+      "policy": {
+        "warn_threshold_percent": 10.0,
+        "block_threshold_percent": 20.0,
+        "error_warn_threshold_percent": 1.0,
+        "error_block_threshold_percent": 5.0
+      }
+    },
+    {
+      "max_tokens": 350,
+      "status": "SAFE",
+      "decision": {
+        "status": "SAFE",
+        "reason": "The candidate experiment remained within the configured safety thresholds.",
+        "recommendation": "The change is eligible for controlled rollout with continued monitoring."
+      },
+      "comparison": {
+        "mean_ttft_change_percent": -5.81,
+        "p95_ttft_change_percent": -5.87,
+        "mean_latency_change_percent": -3.71,
+        "p95_latency_change_percent": -5.99,
+        "error_rate_change_percent": 0.0
+      },
+      "baseline": {
+        "file": "baseline_20261006_214309.json",
+        "mean_ttft_ms": 2081.05,
+        "p95_ttft_ms": 2205.3,
+        "mean_latency_ms": 2083.32,
+        "p95_latency_ms": 2208.58,
+        "error_rate_percent": 0.0
+      },
+      "candidate": {
+        "file": "candidate_CHG001_20261008_225734.json",
+        "mean_ttft_ms": 1960.13,
+        "p95_ttft_ms": 2075.82,
+        "mean_latency_ms": 2006.06,
+        "p95_latency_ms": 2076.38,
+        "error_rate_percent": 0.0
+      },
+      "policy": {
+        "warn_threshold_percent": 10.0,
+        "block_threshold_percent": 20.0,
+        "error_warn_threshold_percent": 1.0,
+        "error_block_threshold_percent": 5.0
+      }
+    },
+    {
+      "max_tokens": 400,
+      "status": "WARN",
+      "decision": {
+        "status": "WARN",
+        "reason": "The candidate experiment produced regressions above the warning threshold but below the blocking threshold.",
+        "recommendation": "Do not perform unrestricted rollout. Use a limited rollout and continue monitoring."
+      },
+      "comparison": {
+        "mean_ttft_change_percent": 0.62,
+        "p95_ttft_change_percent": 10.16,
+        "mean_latency_change_percent": 6.4,
+        "p95_latency_change_percent": 10.02,
+        "error_rate_change_percent": 0.0
+      },
+      "baseline": {
+        "file": "baseline_20261006_214309.json",
+        "mean_ttft_ms": 2081.05,
+        "p95_ttft_ms": 2205.3,
+        "mean_latency_ms": 2083.32,
+        "p95_latency_ms": 2208.58,
+        "error_rate_percent": 0.0
+      },
+      "candidate": {
+        "file": "candidate_CHG001_20261008_225755.json",
+        "mean_ttft_ms": 2094.01,
+        "p95_ttft_ms": 2429.26,
+        "mean_latency_ms": 2216.75,
+        "p95_latency_ms": 2429.82,
+        "error_rate_percent": 0.0
+      },
+      "policy": {
+        "warn_threshold_percent": 10.0,
+        "block_threshold_percent": 20.0,
+        "error_warn_threshold_percent": 1.0,
+        "error_block_threshold_percent": 5.0
+      }
+    },
+    {
+      "max_tokens": 500,
+      "status": "BLOCK",
+      "decision": {
+        "status": "BLOCK",
+        "reason": "The candidate experiment produced one or more regressions above the configured blocking threshold.",
+        "recommendation": "Do not deploy globally. Investigate the regression and repeat validation before rollout."
+      },
+      "comparison": {
+        "mean_ttft_change_percent": 19.17,
+        "p95_ttft_change_percent": 22.95,
+        "mean_latency_change_percent": 23.0,
+        "p95_latency_change_percent": 22.79,
+        "error_rate_change_percent": 0.0
+      },
+      "baseline": {
+        "file": "baseline_20261006_214309.json",
+        "mean_ttft_ms": 2081.05,
+        "p95_ttft_ms": 2205.3,
+        "mean_latency_ms": 2083.32,
+        "p95_latency_ms": 2208.58,
+        "error_rate_percent": 0.0
+      },
+      "candidate": {
+        "file": "candidate_CHG001_20261008_225819.json",
+        "mean_ttft_ms": 2480.07,
+        "p95_ttft_ms": 2711.4,
+        "mean_latency_ms": 2562.48,
+        "p95_latency_ms": 2711.92,
+        "error_rate_percent": 0.0
+      },
+      "policy": {
+        "warn_threshold_percent": 10.0,
+        "block_threshold_percent": 20.0,
+        "error_warn_threshold_percent": 1.0,
+        "error_block_threshold_percent": 5.0
+      }
+    }
+  ]
+}

@@ -299,6 +299,18 @@ The dashboard will normally be available at:
 http://localhost:3000
 ```
 
+To point the dashboard at a backend running elsewhere, create
+`frontend/.env.local` and set:
+
+```env
+NEXT_PUBLIC_PRELIGHT_API_URL=http://127.0.0.1:8000
+```
+
+The boundary explorer runs five paired baseline/candidate rounds for each
+tested token value, matching the standard validation policy. A scan can test
+up to 12 values from 1 to 4096 tokens and may use substantially more inference
+requests than a single validation.
+
 ## Safety Decision
 
 Prelight currently evaluates measured changes using explicit policy thresholds.
@@ -314,6 +326,25 @@ Error rate ≥ 5%           → BLOCK
 ```
 
 The decision engine combines measured experiment results with the configured safety policy to produce a deterministic rollout decision.
+
+Each **Validate Change** run executes five paired baseline/candidate rounds
+against the same workload. The first arm is randomized, then the order
+alternates between rounds to reduce order and provider-drift bias. Results are
+paired by round and checked for matching model, workload fingerprint, and
+request IDs.
+
+Prelight calculates two-sided 95% Student's *t* confidence intervals for the
+paired percentage changes in mean and P95 TTFT and latency. A result is SAFE
+only when every interval's upper bound is at or below the warning threshold.
+An interval that crosses the warning threshold produces WARN. Fewer than five
+complete pairs, any failed request, or invalid/mismatched evidence produces
+BLOCK.
+
+The current workload has nine prompts, so a full validation makes up to 90
+benchmark inference requests, in addition to change analysis and research.
+Runs take longer and consume more Nebius and Tavily credits than a single
+candidate experiment. Per-round artifacts and the confidence ranges are
+available in the results directory and dashboard.
 
 ## Design Principle
 

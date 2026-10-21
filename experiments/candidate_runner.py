@@ -1,4 +1,5 @@
 import json
+import hashlib
 import os
 import statistics
 import time
@@ -454,6 +455,14 @@ def main():
     ]
 
     requests = workload["requests"]
+    pair_id = os.getenv("PRELIGHT_PAIR_ID")
+    workload_fingerprint = hashlib.sha256(
+        json.dumps(
+            requests,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
 
     RESULTS_DIR.mkdir(
         parents=True,
@@ -569,6 +578,10 @@ def main():
                 "title"
             ],
 
+            "pair_id": pair_id,
+
+            "workload_fingerprint": workload_fingerprint,
+
             "model": MODEL,
 
             "configuration": {
@@ -611,7 +624,7 @@ def main():
         / (
             "candidate_"
             f"{change['change_id'].replace('-', '')}_"
-            f"{timestamp}.json"
+            f"{pair_id or timestamp}.json"
         )
     )
 

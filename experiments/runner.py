@@ -1,4 +1,5 @@
 import json
+import hashlib
 import os
 import statistics
 import time
@@ -396,6 +397,14 @@ def main():
 
     workload_name = workload["workload_name"]
     requests = workload["requests"]
+    pair_id = os.getenv("PRELIGHT_PAIR_ID")
+    workload_fingerprint = hashlib.sha256(
+        json.dumps(
+            requests,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
 
     experiment_id = (
         f"baseline-{datetime.now().strftime('%Y%m%d-%H%M%S')}-"
@@ -447,6 +456,8 @@ def main():
             "type": "baseline",
             "name": workload_name,
             "model": MODEL,
+            "pair_id": pair_id,
+            "workload_fingerprint": workload_fingerprint,
 
             "configuration": {
                 "max_tokens": BASELINE_MAX_TOKENS,
@@ -485,7 +496,7 @@ def main():
         RESULTS_DIR
         / (
             "baseline_"
-            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            f"{pair_id or datetime.now().strftime('%Y%m%d_%H%M%S')}"
             ".json"
         )
     )

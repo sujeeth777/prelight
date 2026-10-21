@@ -1,24 +1,29 @@
 {
   "change_id": "CHG-001",
-  "status": "SAFE",
-  "action": "CONTROLLED_ROLLOUT",
-  "summary": "The proposed change remained within Prelight's configured safety thresholds.",
+  "status": "WARN",
+  "action": "LIMITED_ROLLOUT",
+  "summary": "The proposed change exceeded warning thresholds but did not exceed blocking thresholds.",
   "steps": [
     {
       "step": 1,
-      "action": "CANARY",
-      "description": "Deploy the validated configuration to a controlled percentage of traffic."
+      "action": "LIMIT",
+      "description": "Do not perform an unrestricted rollout."
     },
     {
       "step": 2,
+      "action": "CANARY",
+      "description": "Deploy the candidate to a small controlled percentage of traffic."
+    },
+    {
+      "step": 3,
       "action": "MONITOR",
       "description": "Monitor latency, TTFT, throughput, GPU resource usage, and errors."
     },
     {
-      "step": 3,
-      "action": "PROMOTE",
-      "description": "Expand deployment if production measurements remain healthy."
+      "step": 4,
+      "action": "REASSESS",
+      "description": "Promote only if production measurements remain within acceptable limits."
     }
   ],
-  "rollout_policy": "Controlled rollout followed by monitored promotion."
+  "rollout_policy": "Controlled canary rollout with active monitoring."
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = (
+  process.env.NEXT_PUBLIC_PRELIGHT_API_URL ?? "http://127.0.0.1:8000"
+).replace(/\/$/, "");
 
 type Page =
   | "overview"
@@ -13,6 +15,12 @@ type Page =
   | "rollout";
 
 type MetricSet = Record<string, number | string | null | undefined>;
+
+type ExperimentStatus = {
+  running: boolean;
+  operation: "validation" | "boundary_scan" | null;
+  started_at: string | null;
+};
 
 type RolloutStep =
   | string
@@ -43,7 +51,39 @@ type ResearchData = {
     summary: string;
     risk_mechanism: string;
     research_conclusion: string;
+    evidence_strength: string;
+    metrics: string;
+    experiment: string;
   };
+};
+
+type BoundaryResult = {
+  max_tokens: number;
+  status: string;
+  comparison?: MetricSet;
+  uncertainty?: Record<
+    string,
+    {
+      estimate_percent: number | null;
+      lower_percent: number | null;
+      upper_percent: number | null;
+      sample_count: number;
+      confidence_level: number;
+    }
+  >;
+  experiment?: {
+    complete_rounds?: number;
+    required_rounds?: number;
+  };
+  analysis?: Record<string, unknown>;
+};
+
+type BoundaryReport = {
+  tested_values: number[];
+  safe_operating_boundary: number | null;
+  status: string;
+  summary: string;
+  results: BoundaryResult[];
 };
 
 type StateData = {
@@ -84,6 +124,9 @@ type StateData = {
     summary: string;
     risk_mechanism: string;
     research_conclusion: string;
+    evidence_strength: string;
+    metrics: string;
+    experiment: string;
   };
 
   decision: {
@@ -93,6 +136,47 @@ type StateData = {
     baseline_metrics?: MetricSet;
     candidate_metrics?: MetricSet;
     comparison?: MetricSet;
+    uncertainty?: Record<
+      string,
+      {
+        estimate_percent: number | null;
+        lower_percent: number | null;
+        upper_percent: number | null;
+        sample_count: number;
+        confidence_level: number;
+      }
+    >;
+    experiment?: {
+      type?: string;
+      run_id?: string;
+      origin?: string;
+      model?: string | null;
+      started_at?: string | null;
+      finished_at?: string | null;
+      created_at?: string | null;
+      baseline_configuration?: Record<string, unknown> | null;
+      candidate_configuration?: Record<string, unknown> | null;
+      sample_counts?: {
+        baseline_requests?: number;
+        candidate_requests?: number;
+        paired_rounds?: number;
+        complete_rounds?: number;
+      };
+      paired_rounds?: Array<{
+        pair_id: string;
+        order: string;
+        status: string;
+        baseline_started_at?: string | null;
+        baseline_finished_at?: string | null;
+        candidate_started_at?: string | null;
+        candidate_finished_at?: string | null;
+        baseline_request_samples?: number;
+        candidate_request_samples?: number;
+      }>;
+      complete_rounds?: number;
+      required_rounds?: number;
+      round_order?: string[];
+    };
     triggered_rules: string[];
     evidence_chain: string[];
   };
@@ -104,6 +188,8 @@ type StateData = {
     measured_regressions: RolloutStep[];
     policy: string;
   };
+
+  boundary?: BoundaryReport;
 };
 
 const navigation: { id: Page; label: string; icon: string }[] = [
@@ -201,6 +287,29 @@ function formatPercent(value: number | null): string {
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
+function formatTimestamp(value?: string | null): string {
+  if (!value) {
+    return "Unavailable";
+  }
+
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.getTime())
+    ? value
+    : timestamp.toLocaleString();
+}
+
+function formatConfiguration(
+  configuration?: Record<string, unknown> | null
+): string {
+  if (!configuration || Object.keys(configuration).length === 0) {
+    return "Unavailable";
+  }
+
+  return Object.entries(configuration)
+    .map(([key, value]) => `${key}: ${formatValue(value)}`)
+    .join(" · ");
+}
+
 function getStepAction(step: RolloutStep): string {
   if (typeof step === "string") {
     return step;
@@ -232,9 +341,28 @@ export default function Home() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [validating, setValidating] = useState(false);
+  const [experimentStatus, setExperimentStatus] = useState<ExperimentStatus | null>(null);
+  const validationInFlight = useRef(false);
+  const proposalDirtyRef = useRef(false);
+  const [liveRunId, setLiveRunId] = useState<string | null>(null);
   const [validationMessage, setValidationMessage] = useState("");
   const [validationError, setValidationError] = useState("");
-  const [proposedMaxTokens, setProposedMaxTokens] = useState<number>(500);
+  const [proposedMaxTokens, setProposedMaxTokens] = useState<string>("500");
+  const [proposalDirty, setProposalDirty] = useState(false);
+
+  const loadExperimentStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/experiment/status`, {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`);
+      }
+      setExperimentStatus((await response.json()) as ExperimentStatus);
+    } catch {
+      setExperimentStatus(null);
+    }
+  }, []);
 
   const loadState = useCallback(async () => {
     try {
@@ -250,8 +378,8 @@ export default function Home() {
 
       setData(state);
       const proposedMax = state?.change?.proposed_state?.max_tokens;
-      if (typeof proposedMax === "number") {
-        setProposedMaxTokens(proposedMax);
+      if (typeof proposedMax === "number" && !proposalDirtyRef.current) {
+        setProposedMaxTokens(String(proposedMax));
       }
       setError("");
       setLastUpdated(new Date());
@@ -267,10 +395,28 @@ export default function Home() {
   }, []);
 
   const handleValidate = useCallback(async () => {
-    if (validating) {
+    if (
+      validationInFlight.current ||
+      validating ||
+      !experimentStatus ||
+      experimentStatus.running
+    ) {
       return;
     }
 
+    const parsedMaxTokens = Number(proposedMaxTokens);
+    if (
+      !/^\d+$/.test(proposedMaxTokens) ||
+      !Number.isSafeInteger(parsedMaxTokens) ||
+      parsedMaxTokens < 1 ||
+      parsedMaxTokens > 4096
+    ) {
+      setValidationError("Enter a whole number from 1 to 4096 max tokens.");
+      setValidationMessage("");
+      return;
+    }
+
+    validationInFlight.current = true;
     setValidating(true);
     setValidationError("");
     setValidationMessage("Starting validation...");
@@ -284,9 +430,16 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          max_tokens: proposedMaxTokens,
+          max_tokens: parsedMaxTokens,
         }),
       });
+
+      if (response.status === 409) {
+        setValidationMessage("");
+        setValidationError("");
+        await loadExperimentStatus();
+        return;
+      }
 
       const result = await response.json();
 
@@ -298,8 +451,16 @@ export default function Home() {
         );
       }
 
+      const completedRunId = result.result?.run_id;
+      if (typeof completedRunId !== "string") {
+        throw new Error("Validation completed without a run ID.");
+      }
+      setLiveRunId(completedRunId);
+
       setValidationMessage("Validation completed. Refreshing decision...");
 
+      setProposalDirty(false);
+      proposalDirtyRef.current = false;
       await loadState();
       setActivePage("decision");
 
@@ -321,9 +482,10 @@ export default function Home() {
 
       setValidationMessage("");
     } finally {
+      validationInFlight.current = false;
       setValidating(false);
     }
-  }, [loadState, proposedMaxTokens, validating]);
+  }, [experimentStatus, loadExperimentStatus, loadState, proposedMaxTokens, validating]);
 
   useEffect(() => {
     let cancelled = false;
@@ -346,8 +508,23 @@ export default function Home() {
 
         setData(state);
         const proposedMax = state?.change?.proposed_state?.max_tokens;
-        if (typeof proposedMax === "number") {
-          setProposedMaxTokens(proposedMax);
+        if (typeof proposedMax === "number" && !proposalDirtyRef.current) {
+          setProposedMaxTokens(String(proposedMax));
+        }
+        try {
+          const statusResponse = await fetch(
+            `${API_URL}/api/experiment/status`,
+            { cache: "no-store" }
+          );
+          if (statusResponse.ok && !cancelled) {
+            setExperimentStatus(
+              (await statusResponse.json()) as ExperimentStatus
+            );
+          }
+        } catch {
+          if (!cancelled) {
+            setExperimentStatus(null);
+          }
         }
         setError("");
         setLastUpdated(new Date());
@@ -371,16 +548,17 @@ export default function Home() {
     fetchInitialState();
 
     const interval = window.setInterval(() => {
-      if (!validating) {
+      if (!validating && !proposalDirty) {
         loadState();
       }
-    }, 5000);
+      loadExperimentStatus();
+    }, 2500);
 
     return () => {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [loadState, validating]);
+  }, [loadExperimentStatus, loadState, proposalDirty, validating]);
 
   const pageTitle = useMemo(() => {
     const item = navigation.find((nav) => nav.id === activePage);
@@ -425,17 +603,13 @@ export default function Home() {
   }
 
   const currentState = data.change.current_state ?? {};
-  const proposedState = data.change.proposed_state ?? {};
 
   const maxTokensCurrent =
     currentState.max_tokens !== undefined
       ? String(currentState.max_tokens)
       : "—";
 
-  const maxTokensProposed =
-    proposedState.max_tokens !== undefined
-      ? String(proposedState.max_tokens)
-      : "—";
+  const maxTokensProposed = proposedMaxTokens || "—";
 
   return (
     <main className="min-h-screen bg-[#07090d] text-white">
@@ -565,30 +739,42 @@ export default function Home() {
               <div className="flex items-center gap-2 text-[11px] text-emerald-400">
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    validating
+                    validating || experimentStatus?.running
                       ? "animate-pulse bg-amber-400"
                       : "bg-emerald-400"
                   }`}
                 />
 
-                {validating ? "VALIDATING" : "LIVE"}
+                {validating
+                  ? "VALIDATING"
+                  : experimentStatus?.running
+                    ? "EXPERIMENT BUSY"
+                    : experimentStatus
+                      ? "LIVE"
+                      : "CHECKING"}
               </div>
 
               <button
                 onClick={handleValidate}
-                disabled={validating}
+                disabled={validating || !experimentStatus || experimentStatus.running}
                 className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${
-                  validating
+                  validating || !experimentStatus || experimentStatus.running
                     ? "cursor-not-allowed border border-amber-500/20 bg-amber-500/10 text-amber-400"
                     : "border border-white/10 bg-white text-black hover:bg-slate-200"
                 }`}
               >
-                {validating ? "Validating..." : "Validate Change"}
+                {validating
+                  ? "Validating..."
+                  : experimentStatus?.running
+                    ? "Experiment in progress..."
+                    : experimentStatus
+                      ? "Validate Change"
+                      : "Checking status..."}
               </button>
 
               <button
                 onClick={loadState}
-                disabled={validating}
+                disabled={validating || experimentStatus === null}
                 className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-400 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Refresh
@@ -606,6 +792,14 @@ export default function Home() {
             {validationError && (
               <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
                 {validationError}
+              </div>
+            )}
+
+            {experimentStatus?.running && !validating && (
+              <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-3 text-sm text-amber-200">
+                {experimentStatus.operation === "boundary_scan"
+                  ? "A safe-boundary scan is running. Validation will be available when it finishes."
+                  : "A validation is running in another request or browser tab. This page will update when it finishes."}
               </div>
             )}
 
@@ -646,6 +840,7 @@ export default function Home() {
                 data={data}
                 maxTokensCurrent={maxTokensCurrent}
                 maxTokensProposed={maxTokensProposed}
+                liveRunId={liveRunId}
                 onNavigate={setActivePage}
               />
             )}
@@ -654,14 +849,23 @@ export default function Home() {
               <ChangePage
                 data={data}
                 proposedMaxTokens={proposedMaxTokens}
-                setProposedMaxTokens={setProposedMaxTokens}
+                setProposedMaxTokens={(value) => {
+                  setProposedMaxTokens(value);
+                  proposalDirtyRef.current = true;
+                  setProposalDirty(true);
+                }}
+                setProposalDirty={setProposalDirty}
               />
             )}
 
             {activePage === "evidence" && <EvidencePage data={data} />}
 
             {activePage === "experiments" && (
-              <ExperimentsPage data={data} />
+              <ExperimentsPage
+                data={data}
+                experimentStatus={experimentStatus}
+                onRefresh={loadState}
+              />
             )}
 
             {activePage === "decision" && <DecisionPage data={data} />}
@@ -682,14 +886,29 @@ function OverviewPage({
   data,
   maxTokensCurrent,
   maxTokensProposed,
+  liveRunId,
   onNavigate,
 }: {
   data: StateData;
   maxTokensCurrent: string;
   maxTokensProposed: string;
+  liveRunId: string | null;
   onNavigate: (page: Page) => void;
 }) {
   const comparison = data.decision.comparison ?? {};
+  const uncertainty = data.decision.uncertainty ?? {};
+  const experiment = data.decision.experiment ?? {};
+  const pairedRounds = experiment.paired_rounds ?? [];
+  const hasPairedValidation =
+    experiment.type === "paired_candidate";
+  const isLiveThisSession =
+    hasPairedValidation && Boolean(experiment.run_id) && experiment.run_id === liveRunId;
+  const confidenceRows = [
+    { label: "Mean TTFT", key: "mean_ttft_change_percent" },
+    { label: "P95 TTFT", key: "p95_ttft_change_percent" },
+    { label: "Mean latency", key: "mean_latency_change_percent" },
+    { label: "P95 latency", key: "p95_latency_change_percent" },
+  ];
 
   const ttft = getComparisonValue(comparison, [
     "mean_ttft_change_percent",
@@ -732,7 +951,7 @@ function OverviewPage({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <ValueCard
           label="Decision"
           value={data.decision.status}
@@ -806,6 +1025,98 @@ function OverviewPage({
         </DetailPanel>
       </div>
 
+      <DetailPanel title="Validation provenance and uncertainty">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-4">
+          <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${isLiveThisSession ? "text-emerald-300" : "text-amber-300"}`}>
+            {isLiveThisSession ? "Live this session" : "Historical saved result"}
+          </span>
+          <span className="font-mono text-[11px] text-slate-500">
+            Run {experiment.run_id || "unavailable"}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-x-8 gap-y-3 py-4 sm:grid-cols-2 xl:grid-cols-3">
+          <InfoItem label="Model" value={experiment.model || "Unavailable"} />
+          <InfoItem label="Run started" value={formatTimestamp(experiment.started_at)} />
+          <InfoItem label="Run finished" value={formatTimestamp(experiment.finished_at)} />
+          <InfoItem
+            label="Paired samples"
+            value={`${experiment.sample_counts?.complete_rounds ?? experiment.complete_rounds ?? 0} complete / ${experiment.sample_counts?.paired_rounds ?? pairedRounds.length} rounds`}
+          />
+          <InfoItem
+            label="Request samples"
+            value={`Baseline ${experiment.sample_counts?.baseline_requests ?? "Unavailable"} · Candidate ${experiment.sample_counts?.candidate_requests ?? "Unavailable"}`}
+          />
+          <InfoItem label="Artifact created" value={formatTimestamp(experiment.created_at)} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 border-y border-white/[0.06] py-4 sm:grid-cols-2">
+          <InfoItem
+            label="Baseline configuration"
+            value={formatConfiguration(experiment.baseline_configuration)}
+          />
+          <InfoItem
+            label="Candidate configuration"
+            value={formatConfiguration(experiment.candidate_configuration)}
+          />
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <span>
+            {hasPairedValidation
+              ? `${experiment.complete_rounds ?? 0} of ${experiment.required_rounds ?? 5} paired rounds complete`
+              : "No paired validation recorded"}
+          </span>
+          <span>
+            {hasPairedValidation
+              ? `Order: ${(experiment.round_order ?? [])
+                  .map((order) => order === "baseline_first" ? "Baseline then candidate" : "Candidate then baseline")
+                  .join(" · ") || "Not available"}`
+              : "Confidence ranges unavailable"}
+          </span>
+        </div>
+
+        {pairedRounds.length > 0 && (
+          <div className="mb-4 divide-y divide-white/[0.06] border-t border-white/[0.06]">
+            {pairedRounds.map((round, index) => (
+              <div key={round.pair_id} className="grid grid-cols-1 gap-2 py-3 text-xs sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-400">
+                  <span className="font-medium text-slate-300">Round {index + 1}</span>
+                  <span>{round.order === "baseline_first" ? "Baseline first" : "Candidate first"}</span>
+                  <span>{round.status}</span>
+                </div>
+                <div className="grid grid-cols-1 gap-1 text-slate-500 md:grid-cols-2">
+                  <span>Baseline: {formatTimestamp(round.baseline_started_at)} · {round.baseline_request_samples ?? 0} requests</span>
+                  <span>Candidate: {formatTimestamp(round.candidate_started_at)} · {round.candidate_request_samples ?? 0} requests</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          Paired uncertainty · 95% confidence intervals
+        </div>
+        <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
+          {confidenceRows.map(({ label, key }) => {
+            const interval = uncertainty[key];
+            const lower = interval?.lower_percent;
+            const upper = interval?.upper_percent;
+
+            return (
+              <div key={key} className="flex items-center justify-between gap-4 border-t border-white/[0.06] py-3">
+                <span className="text-sm text-slate-400">{label}</span>
+                <span className="text-sm font-medium tabular-nums">
+                  {lower !== null && lower !== undefined && upper !== null && upper !== undefined
+                    ? `${lower.toFixed(1)}% to ${upper.toFixed(1)}%`
+                    : "Insufficient data"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </DetailPanel>
+
       <DetailPanel title="Evidence chain">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {data.decision.evidence_chain.map((step, index) => (
@@ -843,10 +1154,12 @@ function ChangePage({
   data,
   proposedMaxTokens,
   setProposedMaxTokens,
+  setProposalDirty,
 }: {
   data: StateData;
-  proposedMaxTokens: number;
-  setProposedMaxTokens: (value: number) => void;
+  proposedMaxTokens: string;
+  setProposedMaxTokens: (value: string) => void;
+  setProposalDirty: (value: boolean) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -869,18 +1182,24 @@ function ChangePage({
               </div>
 
               <input
-                type="number"
-                min={1}
-                max={4096}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={proposedMaxTokens}
-                onChange={(event) =>
-                  setProposedMaxTokens(Number(event.target.value) || 1)
-                }
+                onChange={(event) => {
+                  setProposedMaxTokens(event.target.value);
+                  setProposalDirty(true);
+                }}
                 className="w-32 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-white"
               />
             </div>
 
-            <MetricTable metrics={data.change.proposed_state as MetricSet} />
+            <MetricTable
+              metrics={{
+                ...(data.change.proposed_state as MetricSet),
+                max_tokens: proposedMaxTokens || "—",
+              }}
+            />
           </div>
         </DetailPanel>
       </div>
@@ -1031,6 +1350,12 @@ function EvidencePage({ data }: { data: StateData }) {
           value={research.available ? "READY" : "UNAVAILABLE"}
           detail="External research state"
         />
+
+        <ValueCard
+          label="Evidence strength"
+          value={assessment.evidence_strength || "UNASSESSED"}
+          detail="Nemotron assessment"
+        />
       </div>
 
       <DetailPanel title="Research assessment">
@@ -1067,6 +1392,25 @@ function EvidencePage({ data }: { data: StateData }) {
               {assessment.research_conclusion ||
                 "No research conclusion available."}
             </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 border-t border-white/[0.06] pt-5 md:grid-cols-2">
+            <div>
+              <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-600">
+                Metrics to validate
+              </div>
+              <p className="text-sm leading-7 text-slate-400">
+                {assessment.metrics || "No metrics recommendation available."}
+              </p>
+            </div>
+            <div>
+              <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-600">
+                Experiment recommendation
+              </div>
+              <p className="text-sm leading-7 text-slate-400">
+                {assessment.experiment || "No experiment recommendation available."}
+              </p>
+            </div>
           </div>
         </div>
       </DetailPanel>
@@ -1204,10 +1548,75 @@ function EvidencePage({ data }: { data: StateData }) {
    EXPERIMENTS
 ============================================================ */
 
-function ExperimentsPage({ data }: { data: StateData }) {
+function ExperimentsPage({
+  data,
+  experimentStatus,
+  onRefresh,
+}: {
+  data: StateData;
+  experimentStatus: ExperimentStatus | null;
+  onRefresh: () => Promise<void> | void;
+}) {
+  const boundary = data.boundary ?? null;
   const baseline = data.decision.baseline_metrics ?? {};
   const candidate = data.decision.candidate_metrics ?? {};
   const comparison = data.decision.comparison ?? {};
+
+  const [boundaryLoading, setBoundaryLoading] = useState(false);
+  const [boundaryMessage, setBoundaryMessage] = useState("");
+  const boundaryUnavailable =
+    boundaryLoading || !experimentStatus || experimentStatus.running;
+
+  const runBoundaryScan = useCallback(async () => {
+    if (!experimentStatus || experimentStatus.running) {
+      setBoundaryMessage(
+        "Another experiment is running. The scan will be available when it finishes."
+      );
+      return;
+    }
+
+    setBoundaryLoading(true);
+    setBoundaryMessage("Running safe-boundary scan...");
+
+    try {
+      const response = await fetch(`${API_URL}/api/boundary`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          values: [300, 350, 400, 500],
+        }),
+      });
+
+      if (response.status === 409) {
+        setBoundaryMessage(
+          "Another experiment is already running. Wait for it to finish before starting a boundary scan."
+        );
+        return;
+      }
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result?.detail || result?.message || "Boundary scan failed."
+        );
+      }
+
+      setBoundaryMessage(
+        result?.boundary?.summary || "Safe-boundary scan completed."
+      );
+
+      await onRefresh();
+    } catch (error) {
+      setBoundaryMessage(
+        error instanceof Error ? error.message : "Boundary scan failed."
+      );
+    } finally {
+      setBoundaryLoading(false);
+    }
+  }, [experimentStatus, onRefresh]);
 
   const baselineMeanTtft = getNumericMetric(baseline, [
     "ttft_mean_ms",
@@ -1334,6 +1743,91 @@ function ExperimentsPage({ data }: { data: StateData }) {
         title="Baseline vs candidate"
         description="Prelight executed the same workload against the current and proposed configurations and compared the measured behavior."
       />
+
+      <DetailPanel title="Safe Boundary Explorer">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-600">
+              Boundary scan
+            </div>
+            <div className="mt-2 text-sm text-slate-400">
+              {boundary?.summary ||
+                "Test the candidate range to find the highest safe generation setting."}
+            </div>
+          </div>
+
+          <button
+            onClick={runBoundaryScan}
+            disabled={boundaryUnavailable}
+            className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${
+              boundaryUnavailable
+                ? "cursor-not-allowed border border-amber-500/20 bg-amber-500/10 text-amber-400"
+                : "border border-white/10 bg-white text-black hover:bg-slate-200"
+            }`}
+          >
+            {boundaryLoading
+              ? "Scanning..."
+              : !experimentStatus
+                ? "Checking status..."
+                : experimentStatus.running
+                  ? "Experiment in progress..."
+                  : "Find Safe Boundary"}
+          </button>
+        </div>
+
+        {boundaryMessage && (
+          <div className="mt-4 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.025] px-4 py-3 text-sm text-slate-300">
+            {boundaryMessage}
+          </div>
+        )}
+
+        {boundary?.results && boundary.results.length > 0 && (
+          <div className="mt-5 overflow-hidden rounded-xl border border-white/[0.06]">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-white/[0.02] text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Config</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Latency delta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {boundary.results.map((result) => {
+                  const delta = getNumericMetric(result.comparison, [
+                    "mean_latency_change_percent",
+                  ]);
+
+                  return (
+                    <tr key={result.max_tokens} className="border-t border-white/[0.05]">
+                      <td className="px-4 py-3 text-slate-300">
+                        {result.max_tokens} tokens
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                            result.status === "BLOCK"
+                              ? "bg-red-500/10 text-red-400"
+                              : result.status === "WARN"
+                                ? "bg-amber-500/10 text-amber-400"
+                                : "bg-emerald-500/10 text-emerald-400"
+                          }`}
+                        >
+                          {result.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400">
+                        {typeof delta === "number"
+                          ? `${delta > 0 ? "+" : ""}${delta.toFixed(2)}%`
+                          : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DetailPanel>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <ValueCard
