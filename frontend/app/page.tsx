@@ -15,15 +15,23 @@ const features = [
   ["Measured, not guessed", "Real inference requests against Nebius-hosted NVIDIA Nemotron. TTFT, P50/P95 latency, throughput and error rate."],
   ["Fail-closed by design", "Missing or incomplete evidence never passes. Incomplete runs resolve to BLOCK, not SAFE."],
   ["Paired statistics", "Baseline and candidate alternate order across rounds, so drift can't masquerade as regression."],
-  ["Safe boundary explorer", "Scan a range of settings to find the highest value that still certifies SAFE."],
+  ["A/A noise control", "Prelight tests your config against itself to measure run-to-run noise, so a +6% blip isn't mistaken for a regression."],
+  ["Safe boundary explorer", "Scan a range of settings to find the highest value that still certifies SAFE, and see the cliff on a chart."],
+  ["Pull-request safety check", "A GitHub Action runs Prelight when configs/change.json changes and comments the verdict on the PR. BLOCK fails the check."],
 ];
 
-const results = [
-  ["+6.24%", "Mean TTFT"],
-  ["+7.15%", "P95 TTFT"],
-  ["+8.67%", "Mean latency"],
-  ["+12.13%", "P95 latency"],
+const sweep = [
+  ["300", "SAFE", "-10.05%", "-8.14%"],
+  ["350", "SAFE", "-3.71%", "-5.99%"],
+  ["400", "WARN", "+6.40%", "+10.02%"],
+  ["500", "BLOCK", "+23.00%", "+22.79%"],
 ];
+
+const tone: Record<string, string> = {
+  SAFE: "bg-emerald-500/10 text-emerald-300",
+  WARN: "bg-amber-500/10 text-amber-300",
+  BLOCK: "bg-red-500/10 text-red-300",
+};
 
 export default function Landing() {
   return (
@@ -79,27 +87,38 @@ export default function Landing() {
 
         <section id="results" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-16">
           <div className="rounded-3xl border border-white/[0.08] bg-[#0a0d12] p-6 sm:p-10">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Real validation run</p>
-                <h2 className="mt-2 text-2xl font-semibold">max_tokens: 300 → 500</h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
-                  Five paired rounds, 45 requests per side. Latency regressions were measured,
-                  not assumed, and the policy refused an unrestricted rollout.
-                </p>
-              </div>
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-sm font-semibold text-amber-300">
-                WARN · limited canary only
-              </span>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Real safe-boundary scan</p>
+            <h2 className="mt-2 text-2xl font-semibold">How far can max_tokens go from 300?</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+              Each value was tested in five paired rounds against the baseline on Nebius Token
+              Factory. Prelight certifies the highest SAFE setting and blocks the one that
+              regresses latency by more than 20%.
+            </p>
+            <div className="mt-8 overflow-x-auto">
+              <table className="w-full min-w-[480px] text-left text-sm">
+                <caption className="sr-only">Latency change versus the 300-token baseline</caption>
+                <thead className="text-slate-400">
+                  <tr>
+                    <th scope="col" className="pb-3 font-medium">max_tokens</th>
+                    <th scope="col" className="pb-3 font-medium">Decision</th>
+                    <th scope="col" className="pb-3 text-right font-medium">Mean latency</th>
+                    <th scope="col" className="pb-3 text-right font-medium">P95 latency</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sweep.map(([tokens, status, mean, p95]) => (
+                    <tr key={tokens} className="border-t border-white/[0.06]">
+                      <td className="py-3 tabular-nums">{tokens}</td>
+                      <td className="py-3">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone[status]}`}>{status}</span>
+                      </td>
+                      <td className="py-3 text-right tabular-nums text-slate-300">{mean}</td>
+                      <td className="py-3 text-right tabular-nums text-slate-300">{p95}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <dl className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-              {results.map(([value, label]) => (
-                <div key={label} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-                  <dd className="text-3xl font-semibold tabular-nums text-amber-300">{value}</dd>
-                  <dt className="mt-1 text-sm text-slate-400">{label}</dt>
-                </div>
-              ))}
-            </dl>
           </div>
         </section>
 
@@ -118,7 +137,7 @@ export default function Landing() {
 
         <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-16">
           <h2 className="text-3xl font-semibold tracking-tight">Built to be trusted</h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-2">
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {features.map(([title, text]) => (
               <article key={title} className="rounded-2xl border border-white/[0.07] bg-[#0a0d12] p-6">
                 <h3 className="text-lg font-medium">{title}</h3>

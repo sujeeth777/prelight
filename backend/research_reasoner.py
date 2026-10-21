@@ -38,7 +38,7 @@ client = OpenAI(
     base_url="https://api.tokenfactory.nebius.com/v1/",
 )
 
-MODEL = "nvidia/Nemotron-3_5-Lightning"
+MODEL = os.environ.get("PRELIGHT_REASONING_MODEL", "nvidia/Nemotron-3_5-Lightning")
 
 
 # ============================================================

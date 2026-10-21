@@ -1,0 +1,41 @@
+name: Prelight safety check
+
+on:
+  pull_request:
+    paths:
+      - "configs/change.json"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  prelight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install openai python-dotenv tavily-python fastapi uvicorn
+      - name: Run Prelight validation
+        id: prelight
+        env:
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          set +e
+          python -m backend.pr_check > prelight-comment.md
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+      - name: Comment verdict on the PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = require('fs').readFileSync('prelight-comment.md', 'utf8');
+            await github.rest.issues.createComment({
+              ...context.repo, issue_number: context.issue.number, body,
+            });
+      - name: Fail the check on BLOCK
+        if: steps.prelight.outputs.exit == '1'
+        run: exit 1
