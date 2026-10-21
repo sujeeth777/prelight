@@ -54,6 +54,7 @@ app.add_middleware(
 
 class ValidationRequest(BaseModel):
     max_tokens: int | None = Field(default=None, ge=1, le=4096)
+    temperature: float | None = Field(default=None, ge=0.0, le=2.0)
 
 
 def load_json(path: Path, default: Any = None) -> Any:
@@ -73,11 +74,13 @@ def write_json(path: Path, payload: dict) -> None:
         file.write("\n")
 
 
-def update_proposed_max_tokens(max_tokens: int | None) -> None:
-    if max_tokens is None:
+def update_proposed_state(
+    max_tokens: int | None, temperature: float | None = None
+) -> None:
+    if max_tokens is None and temperature is None:
         return
 
-    if max_tokens < 1:
+    if max_tokens is not None and max_tokens < 1:
         raise ValueError("max_tokens must be greater than 0")
 
     change_path = BASE_DIR / "configs" / "change.json"
@@ -90,7 +93,10 @@ def update_proposed_max_tokens(max_tokens: int | None) -> None:
     if not isinstance(proposed, dict):
         proposed = {}
 
-    proposed["max_tokens"] = int(max_tokens)
+    if max_tokens is not None:
+        proposed["max_tokens"] = int(max_tokens)
+    if temperature is not None:
+        proposed["temperature"] = float(temperature)
     change["proposed_state"] = proposed
     write_json(change_path, change)
 
@@ -500,6 +506,34 @@ def summarize_boundary(decisions: list[dict]) -> dict:
     }
 
 
+def noise_floor_from(result: dict | None) -> float | None:
+    """Largest absolute paired change seen when a config is compared to
+    itself (A/A). Regressions smaller than this cannot be told from noise."""
+    if not isinstance(result, dict):
+        return None
+    comparison = result.get("comparison") or {}
+    values = [
+        abs(float(v))
+        for k, v in comparison.items()
+        if k.endswith("_change_percent") and isinstance(v, (int, float))
+    ]
+    return round(max(values), 2) if values else None
+
+
+def get_aa_control() -> dict:
+    payload = load_json(RESULTS_DIR / "aa_control.json", {})
+    if not isinstance(payload, dict) or not payload.get("results"):
+        return {"available": False, "noise_floor_percent": None}
+    result = payload["results"][0]
+    return {
+        "available": True,
+        "max_tokens": result.get("max_tokens"),
+        "status": result.get("status"),
+        "noise_floor_percent": noise_floor_from(result),
+        "comparison": result.get("comparison", {}),
+    }
+
+
 def get_boundary_report() -> dict:
     boundary_file = RESULTS_DIR / "boundary_explorer.json"
     if not boundary_file.exists():
@@ -515,15 +549,34 @@ def get_boundary_report() -> dict:
     if not isinstance(payload, dict):
         payload = {}
 
-    if "results" not in payload:
-        payload["results"] = []
+    results = payload.get("results", [])
+    if not isinstance(results, list):
+        results = []
+
+    # Always derive the boundary from the results so the summary, status and
+    # table can never disagree; flag scans that predate paired validation.
+    report = summarize_boundary(results)
+    stale = bool(results) and not any(
+        isinstance(r, dict) and r.get("uncertainty") for r in results
+    )
+    current = (get_change().get("current_state") or {}).get("max_tokens")
+    aa = get_aa_control()
+    if aa["noise_floor_percent"] is None:
+        aa_entry = next(
+            (r for r in results if r.get("max_tokens") == current), None
+        )
+        aa["noise_floor_percent"] = noise_floor_from(aa_entry)
+        aa["source"] = "boundary_scan" if aa_entry else None
 
     return {
         "tested_values": payload.get("tested_values", DEFAULT_BOUNDARY_VALUES),
-        "safe_operating_boundary": payload.get("safe_operating_boundary"),
-        "summary": payload.get("summary", "No boundary scan has been run yet."),
-        "status": payload.get("status", "UNKNOWN"),
-        "results": payload.get("results", []),
+        "safe_operating_boundary": report["safe_operating_boundary"],
+        "summary": report["summary"],
+        "status": report["status"],
+        "results": results,
+        "stale": stale,
+        "noise_floor_percent": aa["noise_floor_percent"],
+        "aa_control": aa,
     }
 
 
@@ -546,7 +599,9 @@ def _run_python_script(
         raise RuntimeError(f"Script failed: {script_path}")
 
 
-def run_boundary_explorer(candidate_values: list[int] | None = None) -> dict:
+def run_boundary_explorer(
+    candidate_values: list[int] | None = None, persist: bool = True
+) -> dict:
     requested_values = sorted(set(candidate_values or DEFAULT_BOUNDARY_VALUES))
     if not requested_values:
         requested_values = list(DEFAULT_BOUNDARY_VALUES)
@@ -663,7 +718,8 @@ def run_boundary_explorer(candidate_values: list[int] | None = None) -> dict:
             "summary": boundary_summary,
             "results": boundary_results,
         }
-        write_json(RESULTS_DIR / "boundary_explorer.json", record)
+        if persist:
+            write_json(RESULTS_DIR / "boundary_explorer.json", record)
         return record
     finally:
         change["proposed_state"] = original_proposed_state
@@ -726,7 +782,7 @@ def api_validate(request: ValidationRequest):
 
     try:
         try:
-            update_proposed_max_tokens(request.max_tokens)
+            update_proposed_state(request.max_tokens, request.temperature)
             result = run_pipeline()
             return {
                 "success": True,
@@ -771,6 +827,32 @@ def api_boundary(request: BoundaryRequest):
                 status_code=500,
                 detail=f"Safe-boundary scan failed: {exc}",
             ) from exc
+    finally:
+        end_experiment()
+
+
+@app.post("/api/aa-control")
+def api_aa_control():
+    """A/A control: run the current config against itself to measure noise."""
+    if not begin_experiment("aa_control"):
+        raise HTTPException(
+            status_code=409, detail="Another experiment is already running."
+        )
+    try:
+        current = (get_change().get("current_state") or {}).get("max_tokens")
+        if not isinstance(current, int):
+            raise HTTPException(status_code=400, detail="No current max_tokens.")
+        record = run_boundary_explorer([current], persist=False)
+        write_json(RESULTS_DIR / "aa_control.json", record)
+        return {"success": True, "aa_control": get_aa_control()}
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover
+        raise HTTPException(
+            status_code=500, detail=f"A/A control failed: {exc}"
+        ) from exc
     finally:
         end_experiment()
 
