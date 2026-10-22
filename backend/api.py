@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import subprocess
@@ -28,6 +29,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 EXPERIMENTS_DIR = BASE_DIR / "experiments"
 RESULTS_DIR = EXPERIMENTS_DIR / "results"
 
+
+class _QuietPolling(logging.Filter):
+    """Hide successful dashboard polling from the uvicorn access log so real
+    pipeline output stays readable. Errors are still logged."""
+
+    QUIET = ('"GET /api/experiment/status ', '"GET /api/state ')
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        return not (" 200" in message and any(q in message for q in self.QUIET))
+
+
+logging.getLogger("uvicorn.access").addFilter(_QuietPolling())
 
 app = FastAPI(
     title="Prelight API",

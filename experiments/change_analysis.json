@@ -6,16 +6,28 @@
     "environment": "nebius-token-factory",
     "workload": "prelight_baseline_v1"
   },
-  "risk_level": "MEDIUM",
+  "risk_level": "HIGH",
   "changes": [
     {
       "parameter": "max_tokens",
       "current": 300,
-      "proposed": 550
+      "proposed": 600
+    },
+    {
+      "parameter": "temperature",
+      "current": 0.2,
+      "proposed": 0.5
+    },
+    {
+      "parameter": "top_p",
+      "current": null,
+      "proposed": 0.65
     }
   ],
   "risk_factors": [
-    "Increasing max_tokens may increase generation latency and resource usage."
+    "Increasing max_tokens may increase generation latency and resource usage.",
+    "Changing temperature can alter model output behavior and reproducibility.",
+    "Parameter 'top_p' changed and requires experimental validation."
   ],
   "requires_experiment": true
 }

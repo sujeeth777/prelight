@@ -221,6 +221,40 @@ evidence = build_compact_evidence(
     research_entries
 )
 
+if source_count == 0:
+    print(
+        "\n!!! No external sources were collected. Skipping the "
+        "Nemotron research assessment instead of inventing one. !!!\n"
+    )
+    raw_output = (
+        "EVIDENCE_STRENGTH:\nNONE\n\n"
+        "RISK_MECHANISM:\nNo external research was available.\n\n"
+        "SUPPORTED_RISKS:\nNone established by external sources.\n\n"
+        "METRICS:\nMean and P95 TTFT, mean and P95 latency, error rate.\n\n"
+        "EXPERIMENT:\nRun the paired baseline/candidate experiment.\n\n"
+        "CONCLUSION:\nNo external evidence was collected. "
+        "The decision must rest on the measured experiment alone."
+    )
+    RAW_FILE.write_text(raw_output, encoding="utf-8")
+    with ASSESSMENT_FILE.open("w", encoding="utf-8") as file:
+        json.dump(
+            {
+                "change_id": change_id,
+                "model": None,
+                "risk_level": risk_level,
+                "research_queries_used": len(research_entries),
+                "research_sources_used": 0,
+                "assessment": raw_output,
+                "role": (
+                    "External research assessment only. "
+                    "Does not override deterministic experiment safety rules."
+                ),
+            },
+            file,
+            indent=2,
+        )
+    raise SystemExit(0)
+
 
 # ============================================================
 # NEMOTRON REASONING

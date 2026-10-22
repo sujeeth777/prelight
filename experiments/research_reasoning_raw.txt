@@ -3,25 +3,33 @@ Here's a thinking process:
 1.  **Analyze User Request:**
    - Role: Prelight's external research assessment engine
    - Task: Assess whether supplied research supports the risk mechanism of the proposed infrastructure change
-   - Output format: Exactly 6 fields with specific constraints
-   - No reasoning process, no SAFE/WARN/BLOCK decision
-   - Concise technical assessment
+   - Constraints: 
+     - Do NOT make a SAFE/WARN/BLOCK decision
+     - Do NOT describe reasoning process
+     - Return ONLY six specific fields with exact formats/lengths
+   - Fields to return:
+     - EVIDENCE_STRENGTH: STRONG, MODERATE, or WEAK
+     - RISK_MECHANISM: One short sentence
+     - SUPPORTED_RISKS: One short sentence containing main supported risks
+     - METRICS: One short sentence listing most important metrics to validate
+     - EXPERIMENT: One short sentence describing controlled experiment required
+     - CONCLUSION: Exactly two short sentences
+   - Input: A change description and 6 research summaries
 
 2.  **Analyze the Change:**
-   - Current: `{"model": "nvidia/Nemotron-3_5-Lightning", "max_tokens": 300, "temperature": 0.2}`
-   - Proposed: `{"model": "nvidia/Nemotron-3_5-Lightning", "max_tokens": 550, "temperature": 0.2}`
-   - Risk level: MEDIUM
-   - Known risk factors: `["Increasing max_tokens may increase generation latency and resource usage."]`
+   - Current: Nemotron-3_5-Lightning, max_tokens=300, temp=0.2
+   - Proposed: same model, max_tokens=600, temp=0.5, top_p=0.65
+   - Risk factors listed: increasing max_tokens → latency/resource usage; changing temperature → output behavior/reproducibility; top_p changed needs validation
 
-3.  **Analyze the Research:**
-   - Research 1: About Nemotron 3.5 Lightning throughput, latency, token rates. Notes that setting max_tokens < 1024 may cause empty responses/reasoning issues. High throughput rates mentioned. Not directly about increasing max_tokens from 300 to 550, but discusses token generation limits and performance.
-   - Research 2: About longer generation output tokens impacting latency/throughput. Memory allocation overhead, pre-allocation trade-offs, KV cache overhead. Supports the known risk factor.
-   - Research 3: About Nemotron inference performance, token rates, TTFT. Mentions generation throughput, token/s metrics. Not directly about max_tokens increase impact, but provides performance context.
-   - Research 4: About NIM inference metrics, throughput, TTFT, ITL improvements. Not directly about max_tokens.
-   - Research 5: Explicitly states "Increasing max_tokens in AI inference may increase generation latency and resource usage." Supports the known risk factor directly.
+3.  **Analyze Research Topics (summarized from queries):**
+   - Research 1: max_tokens generation length latency TTFT throughput Nemotron-3_5-Lightning
+   - Research 2: longer generation output tokens impact latency throughput GPU utilization
+   - Research 3: Nemotron inference performance generation length TTFT latency throughput
+   - Research 4: NIM inference metrics TTFT latency throughput output tokens generation performance
+   - Research 5: Increasing max_tokens may increase generation latency and resource usage. (matches known risk)
+   - Research 6: Changing temperature can alter model output behavior and reproducibility. (matches known risk)
 
-4.  **Synthesize Support for Risk Mechanism:**
-   - The risk mechanism: Increasing max_tokens from 300 to 550 may increase generation latency and resource usage.
-   - Research 5 directly supports this.
-   - Research 2 supports the general mechanism (longer output tokens → latency/throughput trade-offs, memory overhead).
-   - Research 1,
+   All research directly addresses the risk factors mentioned. They provide evidence about latency, throughput, GPU utilization, and output behavior changes due to parameter shifts.
+
+4.  **Determine EVIDENCE_STRENGTH:**
+   - The research queries are directly aligned with the known risk factors. They consistently mention latency, throughput, and output behavior changes

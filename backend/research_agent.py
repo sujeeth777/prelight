@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -33,6 +34,9 @@ if not TAVILY_API_KEY:
     )
 
 
+SEARCH_ATTEMPTS = 3
+
+
 # ------------------------------------------------------------
 # Load project data
 # ------------------------------------------------------------
@@ -49,41 +53,66 @@ def load_json(path: Path):
 # Build research queries
 # ------------------------------------------------------------
 
+PARAMETER_QUERIES = {
+    "max_tokens": [
+        "LLM inference max_tokens output length impact on latency and throughput",
+        "longer generation output tokens effect on time to first token and tail latency",
+    ],
+    "temperature": [
+        "LLM sampling temperature effect on output length, latency and reproducibility",
+        "temperature sampling effect on generation behavior in LLM inference serving",
+    ],
+    "top_p": [
+        "LLM top_p nucleus sampling effect on output length and inference latency",
+        "nucleus sampling top_p effect on response variability and generation cost",
+    ],
+    "model": [
+        "{current} versus {proposed} inference latency throughput comparison",
+        "switching LLM model effect on time to first token, latency and cost per token",
+    ],
+}
+
+
 def build_queries(change: dict, analysis: dict):
-    proposed_state = change.get("proposed_state", {})
+    """Build research queries from the parameters that actually changed."""
     current_state = change.get("current_state", {})
-
+    proposed_state = change.get("proposed_state", {})
     model = proposed_state.get("model", current_state.get("model"))
-    max_tokens = proposed_state.get("max_tokens")
-    temperature = proposed_state.get("temperature")
 
-    queries = [
-        (
-            f"NVIDIA LLM inference max_tokens generation length "
-            f"latency TTFT throughput GPU inference performance {model}"
-        ),
-        (
-            f"NVIDIA inference serving longer generation output tokens "
-            f"impact latency throughput GPU utilization"
-        ),
-        (
-            f"NVIDIA Nemotron inference performance generation length "
-            f"TTFT latency throughput"
-        ),
-        (
-            f"NVIDIA NIM inference metrics TTFT latency throughput "
-            f"output tokens generation performance"
-        ),
+    changed = [
+        item.get("parameter")
+        for item in analysis.get("changes", [])
+        if isinstance(item, dict)
+    ] or [
+        key
+        for key in sorted(set(current_state) | set(proposed_state))
+        if current_state.get(key) != proposed_state.get(key)
     ]
 
-    risk_factors = analysis.get("risk_factors", [])
+    queries = [
+        f"NVIDIA Nemotron inference performance TTFT latency throughput {model}"
+    ]
 
-    for risk in risk_factors[:2]:
-        queries.append(
-            f"NVIDIA AI inference {risk}"
-        )
+    for parameter in changed:
+        for template in PARAMETER_QUERIES.get(parameter, []):
+            queries.append(
+                "NVIDIA "
+                + template.format(
+                    current=current_state.get("model"),
+                    proposed=proposed_state.get("model"),
+                )
+            )
 
-    return queries[:6]
+    if len(queries) == 1:
+        queries += [
+            "NVIDIA inference serving generation configuration impact on latency",
+            "NVIDIA NIM inference metrics TTFT latency throughput generation performance",
+        ]
+
+    for risk in analysis.get("risk_factors", [])[:1]:
+        queries.append(f"NVIDIA AI inference {risk}")
+
+    return list(dict.fromkeys(queries))[:6]
 
 
 # ------------------------------------------------------------
@@ -104,13 +133,25 @@ def run_research(queries):
         print(f"> {query}")
 
         try:
-            response = client.search(
-                query=query,
-                search_depth="advanced",
-                max_results=5,
-                include_answer=True,
-                include_raw_content=False,
-            )
+            response = None
+            last_error = None
+            for attempt in range(1, SEARCH_ATTEMPTS + 1):
+                try:
+                    response = client.search(
+                        query=query,
+                        search_depth="advanced",
+                        max_results=5,
+                        include_answer=True,
+                        include_raw_content=False,
+                    )
+                    break
+                except Exception as retry_exc:  # noqa: BLE001
+                    last_error = retry_exc
+                    print(f"  Attempt {attempt}/{SEARCH_ATTEMPTS} failed: {retry_exc}")
+                    if attempt < SEARCH_ATTEMPTS:
+                        time.sleep(2 * attempt)
+            if response is None:
+                raise last_error  # type: ignore[misc]
 
             answer = response.get("answer")
 
@@ -270,6 +311,19 @@ def main():
         queries,
         evidence,
     )
+
+    sources = artifact["summary"]["source_count"]
+    errors = [item["error"] for item in evidence if item.get("error")]
+    if sources == 0:
+        print("\n!!! WARNING: Tavily returned 0 sources. !!!")
+        for error in errors[:3]:
+            print(f"    Tavily error: {error}")
+        print("    Check TAVILY_API_KEY, your Tavily quota and network access.")
+        print("    The decision will rely on measurements only.")
+        if os.getenv("PRELIGHT_REQUIRE_RESEARCH") == "1":
+            raise RuntimeError(
+                "Research returned no sources and PRELIGHT_REQUIRE_RESEARCH=1."
+            )
 
     print("\n==========================================")
     print("        RESEARCH COMPLETE")

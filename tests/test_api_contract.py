@@ -169,3 +169,35 @@ def test_baseline_runner_reads_current_state_from_change_file(monkeypatch):
     assert runner.BASELINE_MAX_TOKENS == current["max_tokens"]
     assert runner.BASELINE_TEMPERATURE == current["temperature"]
     assert runner.MODEL == current["model"]
+
+
+def test_polling_access_logs_are_filtered_but_errors_are_not():
+    import logging
+
+    from backend.api import _QuietPolling
+
+    f = _QuietPolling()
+
+    def rec(msg):
+        return logging.LogRecord("uvicorn.access", logging.INFO, "", 0, msg, None, None)
+
+    assert not f.filter(rec('127.0.0.1:1 - "GET /api/experiment/status HTTP/1.1" 200 OK'))
+    assert f.filter(rec('127.0.0.1:1 - "GET /api/experiment/status HTTP/1.1" 500 Internal Server Error'))
+    assert f.filter(rec('127.0.0.1:1 - "POST /api/validate HTTP/1.1" 200 OK'))
+
+
+def test_research_queries_follow_the_parameters_that_changed(monkeypatch):
+    monkeypatch.setenv("TAVILY_API_KEY", "test-key")
+    from backend.research_agent import build_queries
+
+    change = {
+        "current_state": {"model": "nvidia/a", "max_tokens": 300, "temperature": 0.2},
+        "proposed_state": {"model": "nvidia/b", "max_tokens": 300, "temperature": 0.9},
+    }
+    analysis = {"changes": [{"parameter": "model"}, {"parameter": "temperature"}], "risk_factors": []}
+    queries = build_queries(change, analysis)
+    joined = " ".join(queries).lower()
+    assert "nvidia/a versus nvidia/b" in joined
+    assert "temperature" in joined
+    assert "max_tokens" not in joined
+    assert len(queries) <= 6 and len(set(queries)) == len(queries)

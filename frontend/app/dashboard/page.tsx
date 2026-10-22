@@ -200,22 +200,44 @@ export default function Home() {
     }
   }, [experimentStatus, loadExperimentStatus, loadState, proposedMaxTokens, proposedTemperature, proposedTopP, proposedModel, validating]);
 
-  useEffect(() => {
-    const first = window.setTimeout(() => {
-      loadState();
-      loadExperimentStatus();
-    }, 0);
+  const experimentRunningRef = useRef(false);
 
-    const interval = window.setInterval(() => {
-      if (!validationInFlight.current && !proposalDirtyRef.current) {
-        loadState();
+  useEffect(() => {
+    experimentRunningRef.current = Boolean(experimentStatus?.running);
+  }, [experimentStatus]);
+
+  // Adaptive polling: fast while an experiment runs, slow when idle, and
+  // paused entirely while the tab is hidden.
+  useEffect(() => {
+    let stopped = false;
+    let timer = 0;
+
+    const tick = () => {
+      if (stopped) return;
+      if (!document.hidden) {
+        if (!validationInFlight.current && !proposalDirtyRef.current) {
+          loadState();
+        }
+        loadExperimentStatus();
       }
-      loadExperimentStatus();
-    }, 2500);
+      const busy = validationInFlight.current || experimentRunningRef.current;
+      timer = window.setTimeout(tick, busy ? 2500 : 10000);
+    };
+
+    const onVisibility = () => {
+      if (!document.hidden) {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(tick, 0);
+      }
+    };
+
+    timer = window.setTimeout(tick, 0);
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      window.clearTimeout(first);
-      window.clearInterval(interval);
+      stopped = true;
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [loadExperimentStatus, loadState]);
 
