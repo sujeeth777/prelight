@@ -61,6 +61,8 @@ def main() -> int:
 
         run_pipeline()
     status, markdown = render()
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     print(markdown)
     return 1 if status == "BLOCK" else 0
 

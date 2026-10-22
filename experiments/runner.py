@@ -20,11 +20,25 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WORKLOAD_FILE = PROJECT_ROOT / "experiments" / "workload.json"
 RESULTS_DIR = PROJECT_ROOT / "experiments" / "results"
 
-MODEL = "nvidia/Nemotron-3_5-Lightning"
+CHANGE_FILE = PROJECT_ROOT / "configs" / "change.json"
 
-# Baseline configuration.
-BASELINE_MAX_TOKENS = 300
-BASELINE_TEMPERATURE = 0.2
+
+def _current_state() -> dict:
+    try:
+        return json.loads(CHANGE_FILE.read_text(encoding="utf-8")).get(
+            "current_state", {}
+        )
+    except (OSError, ValueError):
+        return {}
+
+
+# Baseline configuration comes from configs/change.json (current_state),
+# falling back to the original defaults.
+_STATE = _current_state()
+MODEL = _STATE.get("model", "nvidia/Nemotron-3_5-Lightning")
+BASELINE_MAX_TOKENS = _STATE.get("max_tokens", 300)
+BASELINE_TEMPERATURE = _STATE.get("temperature", 0.2)
+BASELINE_TOP_P = _STATE.get("top_p")
 
 # ---------------------------------------------------------
 # Environment
@@ -141,6 +155,7 @@ def run_request(request):
             ],
             max_tokens=BASELINE_MAX_TOKENS,
             temperature=BASELINE_TEMPERATURE,
+            **({"top_p": BASELINE_TOP_P} if BASELINE_TOP_P is not None else {}),
             stream=True,
             stream_options={"include_usage": True},
         )
@@ -462,6 +477,7 @@ def main():
             "configuration": {
                 "max_tokens": BASELINE_MAX_TOKENS,
                 "temperature": BASELINE_TEMPERATURE,
+                **({"top_p": BASELINE_TOP_P} if BASELINE_TOP_P is not None else {}),
             },
 
             "measurement": {

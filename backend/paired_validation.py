@@ -204,9 +204,20 @@ def build_paired_decision(
             model_names.add(baseline_model)
         if candidate_model:
             model_names.add(candidate_model)
-        if not baseline_model or baseline_model != candidate_model:
+        declared_baseline = (change.get("current_state") or {}).get(
+            "model", baseline_model
+        )
+        declared_candidate = (change.get("proposed_state") or {}).get(
+            "model", declared_baseline
+        )
+        if (
+            not baseline_model
+            or not candidate_model
+            or baseline_model != declared_baseline
+            or candidate_model != declared_candidate
+        ):
             evidence_errors.append(
-                f"Pair {pair_id} used missing or mismatched models."
+                f"Pair {pair_id} used missing or unexpected models."
             )
 
         baseline_configuration = baseline_experiment.get("configuration", {})
@@ -441,7 +452,9 @@ def build_paired_decision(
             "type": "paired_candidate",
             "run_id": uuid.uuid4().hex,
             "origin": "live_provider_experiment",
-            "model": next(iter(model_names)) if len(model_names) == 1 else None,
+            "model": next(iter(model_names))
+            if len(model_names) == 1
+            else (" → ".join(sorted(model_names)) if model_names else None),
             "started_at": min(started_at_values) if started_at_values else None,
             "finished_at": max(finished_at_values) if finished_at_values else None,
             "created_at": datetime.now(timezone.utc).isoformat(),

@@ -410,10 +410,23 @@ noise* rather than treated as a finding.
 
 ## Change types
 
-The dashboard validates `max_tokens` (1–4096) and `temperature` (0–2). Both are
-validated server-side. The reasoning model used for planning and research can be
-changed with `PRELIGHT_REASONING_MODEL` (for example a larger Nemotron for
-reasoning while the workload under test stays on a smaller one).
+The dashboard validates four kinds of change, each checked server-side:
+
+| Parameter | Range | Notes |
+|---|---|---|
+| `max_tokens` | 1–4096 | Output length cap |
+| `temperature` | 0–2 | Sampling randomness |
+| `top_p` | >0–1 | Optional; blank keeps the provider default |
+| `model` | `nvidia/…` id | A different id runs a **model swap** |
+
+The baseline run uses `current_state` from `configs/change.json` and the candidate
+uses `proposed_state`, so any of these can be compared. For a model swap, paired
+validation stays fail-closed: each side must use exactly the model the change
+declares, otherwise the run is an evidence error and resolves to BLOCK.
+
+The reasoning model used for planning and research can be changed with
+`PRELIGHT_REASONING_MODEL` (for example a larger Nemotron for reasoning while the
+workload under test stays on a smaller one).
 
 ## Pull-request safety check
 
@@ -447,6 +460,6 @@ easier. -->
 
 - Landing page and responsive, accessible control-plane dashboard
 - A/A noise control, noise-aware thresholds, confidence-interval and boundary-curve charts
-- Temperature as a second change type, with server-side validation
+- `temperature`, `top_p` and model-swap change types, with server-side validation and a baseline that follows `current_state`
 - GitHub Action PR safety check
 - Consistent safe-boundary reporting, with stale scans flagged

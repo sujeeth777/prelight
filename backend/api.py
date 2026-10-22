@@ -55,6 +55,10 @@ app.add_middleware(
 class ValidationRequest(BaseModel):
     max_tokens: int | None = Field(default=None, ge=1, le=4096)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
+    top_p: float | None = Field(default=None, gt=0.0, le=1.0)
+    model: str | None = Field(
+        default=None, pattern=r"^nvidia/[A-Za-z0-9._-]{1,80}$"
+    )
 
 
 def load_json(path: Path, default: Any = None) -> Any:
@@ -75,9 +79,12 @@ def write_json(path: Path, payload: dict) -> None:
 
 
 def update_proposed_state(
-    max_tokens: int | None, temperature: float | None = None
+    max_tokens: int | None,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    model: str | None = None,
 ) -> None:
-    if max_tokens is None and temperature is None:
+    if all(v is None for v in (max_tokens, temperature, top_p, model)):
         return
 
     if max_tokens is not None and max_tokens < 1:
@@ -97,6 +104,10 @@ def update_proposed_state(
         proposed["max_tokens"] = int(max_tokens)
     if temperature is not None:
         proposed["temperature"] = float(temperature)
+    if top_p is not None:
+        proposed["top_p"] = float(top_p)
+    if model is not None:
+        proposed["model"] = model
     change["proposed_state"] = proposed
     write_json(change_path, change)
 
@@ -782,7 +793,12 @@ def api_validate(request: ValidationRequest):
 
     try:
         try:
-            update_proposed_state(request.max_tokens, request.temperature)
+            update_proposed_state(
+                request.max_tokens,
+                request.temperature,
+                request.top_p,
+                request.model,
+            )
             result = run_pipeline()
             return {
                 "success": True,

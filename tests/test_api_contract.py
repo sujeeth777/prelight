@@ -135,3 +135,37 @@ def test_boundary_report_is_internally_consistent_and_flags_stale_scan():
     if report["results"]:
         assert report["safe_operating_boundary"] in (None, *[r["max_tokens"] for r in report["results"] if r["status"] == "SAFE"])
         assert report["noise_floor_percent"] is None or report["noise_floor_percent"] >= 0
+
+
+def test_validation_request_rejects_unsafe_values():
+    import pytest
+    from pydantic import ValidationError
+
+    from backend.api import ValidationRequest
+
+    assert ValidationRequest(max_tokens=300, temperature=0.7, top_p=0.9, model="nvidia/Nemotron-3_5-Lightning")
+    for bad in (
+        {"top_p": 0},
+        {"top_p": 1.5},
+        {"temperature": 3},
+        {"max_tokens": 99999},
+        {"model": "openai/gpt-4o"},
+        {"model": "nvidia/../etc"},
+    ):
+        with pytest.raises(ValidationError):
+            ValidationRequest(**bad)
+
+
+def test_baseline_runner_reads_current_state_from_change_file(monkeypatch):
+    import importlib
+    import json
+
+    monkeypatch.setenv("NEBIUS_API_KEY", "test-key")
+    from experiments import runner
+
+    runner = importlib.reload(runner)
+
+    current = json.load(open(runner.CHANGE_FILE))["current_state"]
+    assert runner.BASELINE_MAX_TOKENS == current["max_tokens"]
+    assert runner.BASELINE_TEMPERATURE == current["temperature"]
+    assert runner.MODEL == current["model"]

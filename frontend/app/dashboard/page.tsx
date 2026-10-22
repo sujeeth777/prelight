@@ -25,6 +25,8 @@ export default function Home() {
   const [validationError, setValidationError] = useState("");
   const [proposedMaxTokens, setProposedMaxTokens] = useState<string>("500");
   const [proposedTemperature, setProposedTemperature] = useState<string>("0.2");
+  const [proposedTopP, setProposedTopP] = useState<string>("");
+  const [proposedModel, setProposedModel] = useState<string>("");
   const [, setProposalDirty] = useState(false);
 
   const loadExperimentStatus = useCallback(async () => {
@@ -57,6 +59,12 @@ export default function Home() {
       const proposedMax = state?.change?.proposed_state?.max_tokens;
       if (typeof proposedMax === "number" && !proposalDirtyRef.current) {
         setProposedMaxTokens(String(proposedMax));
+      }
+      const proposedTopPValue = state?.change?.proposed_state?.top_p;
+      if (!proposalDirtyRef.current) {
+        setProposedTopP(typeof proposedTopPValue === "number" ? String(proposedTopPValue) : "");
+        const proposedModelValue = state?.change?.proposed_state?.model;
+        setProposedModel(typeof proposedModelValue === "string" ? proposedModelValue : "");
       }
       const proposedTemp = state?.change?.proposed_state?.temperature;
       if (typeof proposedTemp === "number" && !proposalDirtyRef.current) {
@@ -103,6 +111,21 @@ export default function Home() {
       return;
     }
 
+    const topPText = proposedTopP.trim();
+    const parsedTopP = topPText === "" ? null : Number(topPText);
+    if (parsedTopP !== null && (!Number.isFinite(parsedTopP) || parsedTopP <= 0 || parsedTopP > 1)) {
+      setValidationError("top_p must be greater than 0 and at most 1 (or left blank).");
+      setValidationMessage("");
+      return;
+    }
+
+    const modelText = proposedModel.trim();
+    if (modelText !== "" && !/^nvidia\/[A-Za-z0-9._-]{1,80}$/.test(modelText)) {
+      setValidationError("Model must be an NVIDIA model id such as nvidia/Nemotron-3_5-Lightning.");
+      setValidationMessage("");
+      return;
+    }
+
     validationInFlight.current = true;
     setValidating(true);
     setValidationError("");
@@ -119,6 +142,8 @@ export default function Home() {
         body: JSON.stringify({
           max_tokens: parsedMaxTokens,
           temperature: parsedTemperature,
+          ...(parsedTopP !== null ? { top_p: parsedTopP } : {}),
+          ...(modelText !== "" ? { model: modelText } : {}),
         }),
       });
 
@@ -173,7 +198,7 @@ export default function Home() {
       validationInFlight.current = false;
       setValidating(false);
     }
-  }, [experimentStatus, loadExperimentStatus, loadState, proposedMaxTokens, proposedTemperature, validating]);
+  }, [experimentStatus, loadExperimentStatus, loadState, proposedMaxTokens, proposedTemperature, proposedTopP, proposedModel, validating]);
 
   useEffect(() => {
     const first = window.setTimeout(() => {
@@ -497,6 +522,18 @@ export default function Home() {
             {activePage === "change" && (
               <ChangePage
                 data={data}
+                proposedTopP={proposedTopP}
+                setProposedTopP={(value) => {
+                  setProposedTopP(value);
+                  proposalDirtyRef.current = true;
+                  setProposalDirty(true);
+                }}
+                proposedModel={proposedModel}
+                setProposedModel={(value) => {
+                  setProposedModel(value);
+                  proposalDirtyRef.current = true;
+                  setProposalDirty(true);
+                }}
                 proposedTemperature={proposedTemperature}
                 setProposedTemperature={(value) => {
                   setProposedTemperature(value);
