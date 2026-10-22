@@ -10,7 +10,7 @@
   },
   "proposed_state": {
     "model": "nvidia/Nemotron-3_5-Lightning",
-    "max_tokens": 350,
+    "max_tokens": 550,
     "temperature": 0.2
   },
   "target": {

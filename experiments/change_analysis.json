@@ -11,7 +11,7 @@
     {
       "parameter": "max_tokens",
       "current": 300,
-      "proposed": 350
+      "proposed": 550
     }
   ],
   "risk_factors": [

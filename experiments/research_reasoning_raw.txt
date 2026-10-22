@@ -3,25 +3,25 @@ Here's a thinking process:
 1.  **Analyze User Request:**
    - Role: Prelight's external research assessment engine
    - Task: Assess whether supplied research supports the risk mechanism of the proposed infrastructure change
-   - Constraints: 
-     - Do not make SAFE/WARN/BLOCK decision
-     - Do not describe reasoning process
-     - Return ONLY six specific fields: EVIDENCE_STRENGTH, RISK_MECHANISM, SUPPORTED_RISKS, METRICS, EXPERIMENT, CONCLUSION
-     - Each has strict format requirements (one word, one short sentence, etc.)
-   - Change: Nemotron generation configuration (max_tokens from 300 to 350, temperature stays 0.2)
-   - Component: inference
-   - Risk level: MEDIUM (given, but I don't make the decision)
-   - Known risk factors: ["Increasing max_tokens may increase generation latency and resource usage."]
-   - 5 Research sources provided with summaries/evidence
+   - Output format: Exactly 6 fields with specific constraints
+   - No reasoning process, no SAFE/WARN/BLOCK decision
+   - Concise technical assessment
 
 2.  **Analyze the Change:**
-   - Current: max_tokens: 300
-   - Proposed: max_tokens: 350
-   - Only change: +50 tokens max output
-   - Risk mechanism: Increasing max_tokens may increase generation latency and resource usage (given)
+   - Current: `{"model": "nvidia/Nemotron-3_5-Lightning", "max_tokens": 300, "temperature": 0.2}`
+   - Proposed: `{"model": "nvidia/Nemotron-3_5-Lightning", "max_tokens": 550, "temperature": 0.2}`
+   - Risk level: MEDIUM
+   - Known risk factors: `["Increasing max_tokens may increase generation latency and resource usage."]`
 
-3.  **Analyze Research Sources for Relevance/Support:**
-   - Research 1: About Nemotron 3.5 Lightning throughput, TTFT, TPOT, context length. Mentions higher max_tokens can lead to empty responses, but main focus is efficiency/throughput. Mentions "model supports context length up to 1 million tokens". Not strongly about latency increase from max_tokens bump.
-   - Research 2: About longer generation output tokens impacting latency/throughput. Key evidence: "memory allocation for each token generation incurs latency overhead... improves usability but suffers long inference latency. Alternatively, pre-allocating memory wastes memory...". This directly supports the risk mechanism.
-   - Research 3: About Nemotron inference performance, TTFT, generation throughput. Gives specific numbers (TTFT ~38ms on B200, 200 tok/s generation). Doesn't directly address max_tokens increase impact, but gives baseline latency/throughput context.
-   - Research 4: About NIM inference metrics, TTFT
+3.  **Analyze the Research:**
+   - Research 1: About Nemotron 3.5 Lightning throughput, latency, token rates. Notes that setting max_tokens < 1024 may cause empty responses/reasoning issues. High throughput rates mentioned. Not directly about increasing max_tokens from 300 to 550, but discusses token generation limits and performance.
+   - Research 2: About longer generation output tokens impacting latency/throughput. Memory allocation overhead, pre-allocation trade-offs, KV cache overhead. Supports the known risk factor.
+   - Research 3: About Nemotron inference performance, token rates, TTFT. Mentions generation throughput, token/s metrics. Not directly about max_tokens increase impact, but provides performance context.
+   - Research 4: About NIM inference metrics, throughput, TTFT, ITL improvements. Not directly about max_tokens.
+   - Research 5: Explicitly states "Increasing max_tokens in AI inference may increase generation latency and resource usage." Supports the known risk factor directly.
+
+4.  **Synthesize Support for Risk Mechanism:**
+   - The risk mechanism: Increasing max_tokens from 300 to 550 may increase generation latency and resource usage.
+   - Research 5 directly supports this.
+   - Research 2 supports the general mechanism (longer output tokens → latency/throughput trade-offs, memory overhead).
+   - Research 1,
