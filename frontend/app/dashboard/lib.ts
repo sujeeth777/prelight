@@ -80,9 +80,6 @@ export type BoundaryReport = {
   status: string;
   summary: string;
   results: BoundaryResult[];
-  stale?: boolean;
-  noise_floor_percent?: number | null;
-  aa_control?: { available: boolean; noise_floor_percent: number | null; source?: string | null };
 };
 
 export type StateData = {

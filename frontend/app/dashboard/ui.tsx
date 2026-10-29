@@ -72,13 +72,11 @@ export function ThresholdRow({
   value,
   blockThreshold,
   warnThreshold,
-  noise = null,
 }: {
   label: string;
   value: number | null;
   blockThreshold: number;
   warnThreshold: number;
-  noise?: number | null;
 }) {
   const blocked = value !== null && value > blockThreshold;
   const warned = !blocked && value !== null && value > warnThreshold;
@@ -90,9 +88,6 @@ export function ThresholdRow({
 
         <div className="mt-1 text-xs text-slate-400">
           Block threshold: &gt; {blockThreshold}%
-          {value !== null && noise !== null && Math.abs(value) <= noise && (
-            <span className="ml-2 text-slate-300">· within A/A noise (±{noise}%)</span>
-          )}
         </div>
       </div>
 

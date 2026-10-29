@@ -108,7 +108,7 @@ Keep the entire response below 700 words.
     print()
 
     response = client.chat.completions.create(
-        model=os.environ.get("PRELIGHT_REASONING_MODEL", "nvidia/Nemotron-3_5-Lightning"),
+        model="nvidia/Nemotron-3_5-Lightning",
         messages=[
             {
                 "role": "system",

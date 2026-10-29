@@ -2,7 +2,6 @@
 
 import { Page, StateData, formatConfiguration, formatTimestamp, getComparisonValue, stepTarget } from "./lib";
 import { DetailPanel, InfoItem, MiniStat, ValueCard } from "./ui";
-import { PipelineFlow } from "./visuals";
 
 export function OverviewPage({
   data,
@@ -72,8 +71,6 @@ export function OverviewPage({
           produces an evidence-backed rollout decision.
         </p>
       </div>
-
-      <PipelineFlow stages={data.decision.evidence_chain} status={data.decision.status} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <ValueCard
