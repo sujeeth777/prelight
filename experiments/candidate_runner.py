@@ -101,6 +101,8 @@ def run_request(
     request,
     max_tokens,
     temperature,
+    model=None,
+    top_p=None,
 ):
     """
     Run one candidate request.
@@ -125,7 +127,7 @@ def run_request(
 
     try:
         stream = client.chat.completions.create(
-            model=MODEL,
+            model=model or MODEL,
             messages=[
                 {
                     "role": "system",
@@ -142,6 +144,7 @@ def run_request(
             ],
             max_tokens=max_tokens,
             temperature=temperature,
+            **({"top_p": top_p} if top_p is not None else {}),
             stream=True,
             stream_options={"include_usage": True},
         )
@@ -454,6 +457,9 @@ def main():
         "temperature"
     ]
 
+    model = proposed_state.get("model", MODEL)
+    top_p = proposed_state.get("top_p")
+
     requests = workload["requests"]
     pair_id = os.getenv("PRELIGHT_PAIR_ID")
     workload_fingerprint = hashlib.sha256(
@@ -502,7 +508,7 @@ def main():
 
     print(
         f"Model: "
-        f"{MODEL}"
+        f"{model}"
     )
 
     print(
@@ -538,6 +544,8 @@ def main():
             request,
             max_tokens,
             temperature,
+            model=model,
+            top_p=top_p,
         )
 
         results.append(result)
@@ -582,11 +590,12 @@ def main():
 
             "workload_fingerprint": workload_fingerprint,
 
-            "model": MODEL,
+            "model": model,
 
             "configuration": {
                 "max_tokens": max_tokens,
                 "temperature": temperature,
+                **({"top_p": top_p} if top_p is not None else {}),
             },
 
             "measurement": {

@@ -1,18 +1,18 @@
 {
-  "run_id": "7ff3ca2571ee4a05963004cf1dfff6f1",
-  "created_at": "2026-10-13T10:30:28.643207+00:00",
+  "run_id": "c4194e6ba2f5450db72460935cd74aaf",
+  "created_at": "2026-10-21T06:14:24.112214+00:00",
   "experiment": {
     "type": "paired_candidate",
-    "run_id": "7ff3ca2571ee4a05963004cf1dfff6f1",
+    "run_id": "c4194e6ba2f5450db72460935cd74aaf",
     "origin": "live_provider_experiment",
     "model": "nvidia/Nemotron-3_5-Lightning",
-    "started_at": "2026-10-13T10:26:23.947387+00:00",
-    "finished_at": "2026-10-13T10:30:28.511451+00:00",
-    "created_at": "2026-10-13T10:30:28.643266+00:00",
+    "started_at": "2026-10-21T06:10:40.606176+00:00",
+    "finished_at": "2026-10-21T06:14:23.995336+00:00",
+    "created_at": "2026-10-21T06:14:24.112250+00:00",
     "change_id": "CHG-001",
     "configuration": {
       "model": "nvidia/Nemotron-3_5-Lightning",
-      "max_tokens": 350,
+      "max_tokens": 550,
       "temperature": 0.2
     },
     "baseline_configuration": {
@@ -20,116 +20,116 @@
       "temperature": 0.2
     },
     "candidate_configuration": {
-      "max_tokens": 350,
+      "max_tokens": 550,
       "temperature": 0.2
     },
     "paired_rounds": [
       {
-        "pair_id": "dc87a55614a1-round-01",
-        "order": "baseline_first",
-        "baseline_file": "baseline_dc87a55614a1-round-01.json",
-        "candidate_file": "candidate_CHG001_dc87a55614a1-round-01.json",
-        "model": "nvidia/Nemotron-3_5-Lightning",
-        "baseline_configuration": {
-          "max_tokens": 300,
-          "temperature": 0.2
-        },
-        "candidate_configuration": {
-          "max_tokens": 350,
-          "temperature": 0.2
-        },
-        "baseline_started_at": "2026-10-13T10:26:23.947387+00:00",
-        "baseline_finished_at": "2026-10-13T10:26:44.830732+00:00",
-        "candidate_started_at": "2026-10-13T10:26:48.878256+00:00",
-        "candidate_finished_at": "2026-10-13T10:27:11.653407+00:00",
-        "baseline_request_samples": 9,
-        "candidate_request_samples": 9,
-        "status": "complete"
-      },
-      {
-        "pair_id": "7e1cbc52fa56-round-02",
+        "pair_id": "938ca5e889c7-round-01",
         "order": "candidate_first",
-        "baseline_file": "baseline_7e1cbc52fa56-round-02.json",
-        "candidate_file": "candidate_CHG001_7e1cbc52fa56-round-02.json",
+        "baseline_file": "baseline_938ca5e889c7-round-01.json",
+        "candidate_file": "candidate_CHG001_938ca5e889c7-round-01.json",
         "model": "nvidia/Nemotron-3_5-Lightning",
         "baseline_configuration": {
           "max_tokens": 300,
           "temperature": 0.2
         },
         "candidate_configuration": {
-          "max_tokens": 350,
+          "max_tokens": 550,
           "temperature": 0.2
         },
-        "baseline_started_at": "2026-10-13T10:27:41.096390+00:00",
-        "baseline_finished_at": "2026-10-13T10:28:04.683031+00:00",
-        "candidate_started_at": "2026-10-13T10:27:15.804672+00:00",
-        "candidate_finished_at": "2026-10-13T10:27:40.201609+00:00",
+        "baseline_started_at": "2026-10-21T06:11:06.862295+00:00",
+        "baseline_finished_at": "2026-10-21T06:11:24.359301+00:00",
+        "candidate_started_at": "2026-10-21T06:10:40.606176+00:00",
+        "candidate_finished_at": "2026-10-21T06:11:05.853159+00:00",
         "baseline_request_samples": 9,
         "candidate_request_samples": 9,
         "status": "complete"
       },
       {
-        "pair_id": "895af4545fc9-round-03",
+        "pair_id": "e7f361eca2e3-round-02",
         "order": "baseline_first",
-        "baseline_file": "baseline_895af4545fc9-round-03.json",
-        "candidate_file": "candidate_CHG001_895af4545fc9-round-03.json",
+        "baseline_file": "baseline_e7f361eca2e3-round-02.json",
+        "candidate_file": "candidate_CHG001_e7f361eca2e3-round-02.json",
         "model": "nvidia/Nemotron-3_5-Lightning",
         "baseline_configuration": {
           "max_tokens": 300,
           "temperature": 0.2
         },
         "candidate_configuration": {
-          "max_tokens": 350,
+          "max_tokens": 550,
           "temperature": 0.2
         },
-        "baseline_started_at": "2026-10-13T10:28:05.582879+00:00",
-        "baseline_finished_at": "2026-10-13T10:28:26.581227+00:00",
-        "candidate_started_at": "2026-10-13T10:28:27.567635+00:00",
-        "candidate_finished_at": "2026-10-13T10:28:52.358990+00:00",
+        "baseline_started_at": "2026-10-21T06:11:25.319245+00:00",
+        "baseline_finished_at": "2026-10-21T06:11:43.369577+00:00",
+        "candidate_started_at": "2026-10-21T06:11:44.314658+00:00",
+        "candidate_finished_at": "2026-10-21T06:12:08.641247+00:00",
         "baseline_request_samples": 9,
         "candidate_request_samples": 9,
         "status": "complete"
       },
       {
-        "pair_id": "1486c49798b0-round-04",
+        "pair_id": "9b70e8c70f9a-round-03",
         "order": "candidate_first",
-        "baseline_file": "baseline_1486c49798b0-round-04.json",
-        "candidate_file": "candidate_CHG001_1486c49798b0-round-04.json",
+        "baseline_file": "baseline_9b70e8c70f9a-round-03.json",
+        "candidate_file": "candidate_CHG001_9b70e8c70f9a-round-03.json",
         "model": "nvidia/Nemotron-3_5-Lightning",
         "baseline_configuration": {
           "max_tokens": 300,
           "temperature": 0.2
         },
         "candidate_configuration": {
-          "max_tokens": 350,
+          "max_tokens": 550,
           "temperature": 0.2
         },
-        "baseline_started_at": "2026-10-13T10:29:17.204240+00:00",
-        "baseline_finished_at": "2026-10-13T10:29:38.285178+00:00",
-        "candidate_started_at": "2026-10-13T10:28:53.344747+00:00",
-        "candidate_finished_at": "2026-10-13T10:29:15.834827+00:00",
+        "baseline_started_at": "2026-10-21T06:12:35.335202+00:00",
+        "baseline_finished_at": "2026-10-21T06:12:53.069965+00:00",
+        "candidate_started_at": "2026-10-21T06:12:09.529610+00:00",
+        "candidate_finished_at": "2026-10-21T06:12:34.387773+00:00",
         "baseline_request_samples": 9,
         "candidate_request_samples": 9,
         "status": "complete"
       },
       {
-        "pair_id": "b4d1bc78b8cd-round-05",
+        "pair_id": "18f802f1eb02-round-04",
         "order": "baseline_first",
-        "baseline_file": "baseline_b4d1bc78b8cd-round-05.json",
-        "candidate_file": "candidate_CHG001_b4d1bc78b8cd-round-05.json",
+        "baseline_file": "baseline_18f802f1eb02-round-04.json",
+        "candidate_file": "candidate_CHG001_18f802f1eb02-round-04.json",
         "model": "nvidia/Nemotron-3_5-Lightning",
         "baseline_configuration": {
           "max_tokens": 300,
           "temperature": 0.2
         },
         "candidate_configuration": {
-          "max_tokens": 350,
+          "max_tokens": 550,
           "temperature": 0.2
         },
-        "baseline_started_at": "2026-10-13T10:29:40.755037+00:00",
-        "baseline_finished_at": "2026-10-13T10:30:03.377082+00:00",
-        "candidate_started_at": "2026-10-13T10:30:04.477104+00:00",
-        "candidate_finished_at": "2026-10-13T10:30:28.511451+00:00",
+        "baseline_started_at": "2026-10-21T06:12:53.997815+00:00",
+        "baseline_finished_at": "2026-10-21T06:13:11.652198+00:00",
+        "candidate_started_at": "2026-10-21T06:13:12.715031+00:00",
+        "candidate_finished_at": "2026-10-21T06:13:38.041032+00:00",
+        "baseline_request_samples": 9,
+        "candidate_request_samples": 9,
+        "status": "complete"
+      },
+      {
+        "pair_id": "1395806684bc-round-05",
+        "order": "candidate_first",
+        "baseline_file": "baseline_1395806684bc-round-05.json",
+        "candidate_file": "candidate_CHG001_1395806684bc-round-05.json",
+        "model": "nvidia/Nemotron-3_5-Lightning",
+        "baseline_configuration": {
+          "max_tokens": 300,
+          "temperature": 0.2
+        },
+        "candidate_configuration": {
+          "max_tokens": 550,
+          "temperature": 0.2
+        },
+        "baseline_started_at": "2026-10-21T06:14:06.922563+00:00",
+        "baseline_finished_at": "2026-10-21T06:14:23.995336+00:00",
+        "candidate_started_at": "2026-10-21T06:13:38.959084+00:00",
+        "candidate_finished_at": "2026-10-21T06:14:04.500180+00:00",
         "baseline_request_samples": 9,
         "candidate_request_samples": 9,
         "status": "complete"
@@ -138,11 +138,11 @@
     "complete_rounds": 5,
     "required_rounds": 5,
     "round_order": [
-      "baseline_first",
       "candidate_first",
       "baseline_first",
       "candidate_first",
-      "baseline_first"
+      "baseline_first",
+      "candidate_first"
     ],
     "sample_counts": {
       "baseline_requests": 45,
@@ -152,59 +152,59 @@
     }
   },
   "baseline": {
-    "ttft_mean_ms": 2408.68,
-    "ttft_p95_ms": 3042.76,
-    "latency_mean_ms": 2423.99,
-    "latency_p95_ms": 3047.85,
+    "ttft_mean_ms": 1941.78,
+    "ttft_p95_ms": 2140.0,
+    "latency_mean_ms": 1954.26,
+    "latency_p95_ms": 2143.12,
     "error_rate_percent": 0.0
   },
   "candidate": {
-    "ttft_mean_ms": 2555.87,
-    "ttft_p95_ms": 3262.67,
-    "latency_mean_ms": 2630.27,
-    "latency_p95_ms": 3403.07,
+    "ttft_mean_ms": 2622.78,
+    "ttft_p95_ms": 2974.19,
+    "latency_mean_ms": 2782.75,
+    "latency_p95_ms": 3011.04,
     "error_rate_percent": 0.0
   },
   "comparison": {
-    "mean_ttft_change_percent": 6.24,
-    "p95_ttft_change_percent": 7.15,
-    "mean_latency_change_percent": 8.67,
-    "p95_latency_change_percent": 12.13
+    "mean_ttft_change_percent": 35.13,
+    "p95_ttft_change_percent": 39.45,
+    "mean_latency_change_percent": 42.48,
+    "p95_latency_change_percent": 41.01
   },
   "uncertainty": {
     "mean_ttft_change_percent": {
-      "estimate_percent": 6.24,
-      "lower_percent": 1.87,
-      "upper_percent": 10.6,
+      "estimate_percent": 35.13,
+      "lower_percent": 28.87,
+      "upper_percent": 41.39,
       "sample_count": 5,
       "confidence_level": 0.95
     },
     "p95_ttft_change_percent": {
-      "estimate_percent": 7.15,
-      "lower_percent": -9.46,
-      "upper_percent": 23.76,
+      "estimate_percent": 39.45,
+      "lower_percent": 24.72,
+      "upper_percent": 54.18,
       "sample_count": 5,
       "confidence_level": 0.95
     },
     "mean_latency_change_percent": {
-      "estimate_percent": 8.67,
-      "lower_percent": 1.69,
-      "upper_percent": 15.66,
+      "estimate_percent": 42.48,
+      "lower_percent": 35.69,
+      "upper_percent": 49.27,
       "sample_count": 5,
       "confidence_level": 0.95
     },
     "p95_latency_change_percent": {
-      "estimate_percent": 12.13,
-      "lower_percent": -13.84,
-      "upper_percent": 38.11,
+      "estimate_percent": 41.01,
+      "lower_percent": 25.26,
+      "upper_percent": 56.75,
       "sample_count": 5,
       "confidence_level": 0.95
     }
   },
   "triggered_rules": [
-    "WARN: Mean TTFT regression is uncertain or may exceed the 10% warning threshold.",
-    "WARN: P95 TTFT regression is uncertain or may exceed the 10% warning threshold.",
-    "WARN: Mean latency regression is uncertain or may exceed the 10% warning threshold.",
-    "WARN: P95 latency regression is uncertain or may exceed the 10% warning threshold."
+    "BLOCK: Mean TTFT regression is above 20% at the 95% confidence bound.",
+    "BLOCK: P95 TTFT regression is above 20% at the 95% confidence bound.",
+    "BLOCK: Mean latency regression is above 20% at the 95% confidence bound.",
+    "BLOCK: P95 latency regression is above 20% at the 95% confidence bound."
   ]
 }

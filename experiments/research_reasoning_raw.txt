@@ -4,24 +4,32 @@ Here's a thinking process:
    - Role: Prelight's external research assessment engine
    - Task: Assess whether supplied research supports the risk mechanism of the proposed infrastructure change
    - Constraints: 
-     - Do not make SAFE/WARN/BLOCK decision
-     - Do not describe reasoning process
-     - Return ONLY six specific fields: EVIDENCE_STRENGTH, RISK_MECHANISM, SUPPORTED_RISKS, METRICS, EXPERIMENT, CONCLUSION
-     - Each has strict format requirements (one word, one short sentence, etc.)
-   - Change: Nemotron generation configuration (max_tokens from 300 to 350, temperature stays 0.2)
-   - Component: inference
-   - Risk level: MEDIUM (given, but I don't make the decision)
-   - Known risk factors: ["Increasing max_tokens may increase generation latency and resource usage."]
-   - 5 Research sources provided with summaries/evidence
+     - Do NOT make a SAFE/WARN/BLOCK decision
+     - Do NOT describe reasoning process
+     - Return ONLY six specific fields with exact formats/lengths
+   - Fields to return:
+     - EVIDENCE_STRENGTH: STRONG, MODERATE, or WEAK
+     - RISK_MECHANISM: One short sentence
+     - SUPPORTED_RISKS: One short sentence containing main supported risks
+     - METRICS: One short sentence listing most important metrics to validate
+     - EXPERIMENT: One short sentence describing controlled experiment required
+     - CONCLUSION: Exactly two short sentences
+   - Input: A change description and 6 research summaries
 
 2.  **Analyze the Change:**
-   - Current: max_tokens: 300
-   - Proposed: max_tokens: 350
-   - Only change: +50 tokens max output
-   - Risk mechanism: Increasing max_tokens may increase generation latency and resource usage (given)
+   - Current: Nemotron-3_5-Lightning, max_tokens=300, temp=0.2
+   - Proposed: same model, max_tokens=600, temp=0.5, top_p=0.65
+   - Risk factors listed: increasing max_tokens → latency/resource usage; changing temperature → output behavior/reproducibility; top_p changed needs validation
 
-3.  **Analyze Research Sources for Relevance/Support:**
-   - Research 1: About Nemotron 3.5 Lightning throughput, TTFT, TPOT, context length. Mentions higher max_tokens can lead to empty responses, but main focus is efficiency/throughput. Mentions "model supports context length up to 1 million tokens". Not strongly about latency increase from max_tokens bump.
-   - Research 2: About longer generation output tokens impacting latency/throughput. Key evidence: "memory allocation for each token generation incurs latency overhead... improves usability but suffers long inference latency. Alternatively, pre-allocating memory wastes memory...". This directly supports the risk mechanism.
-   - Research 3: About Nemotron inference performance, TTFT, generation throughput. Gives specific numbers (TTFT ~38ms on B200, 200 tok/s generation). Doesn't directly address max_tokens increase impact, but gives baseline latency/throughput context.
-   - Research 4: About NIM inference metrics, TTFT
+3.  **Analyze Research Topics (summarized from queries):**
+   - Research 1: max_tokens generation length latency TTFT throughput Nemotron-3_5-Lightning
+   - Research 2: longer generation output tokens impact latency throughput GPU utilization
+   - Research 3: Nemotron inference performance generation length TTFT latency throughput
+   - Research 4: NIM inference metrics TTFT latency throughput output tokens generation performance
+   - Research 5: Increasing max_tokens may increase generation latency and resource usage. (matches known risk)
+   - Research 6: Changing temperature can alter model output behavior and reproducibility. (matches known risk)
+
+   All research directly addresses the risk factors mentioned. They provide evidence about latency, throughput, GPU utilization, and output behavior changes due to parameter shifts.
+
+4.  **Determine EVIDENCE_STRENGTH:**
+   - The research queries are directly aligned with the known risk factors. They consistently mention latency, throughput, and output behavior changes

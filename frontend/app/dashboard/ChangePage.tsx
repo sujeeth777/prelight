@@ -7,15 +7,11 @@ export function ChangePage({
   data,
   proposedMaxTokens,
   setProposedMaxTokens,
-  proposedTemperature,
-  setProposedTemperature,
   setProposalDirty,
 }: {
   data: StateData;
   proposedMaxTokens: string;
   setProposedMaxTokens: (value: string) => void;
-  proposedTemperature: string;
-  setProposedTemperature: (value: string) => void;
   setProposalDirty: (value: boolean) => void;
 }) {
   return (
@@ -55,25 +51,10 @@ export function ChangePage({
               <p id="max-tokens-help" className="mt-2 text-xs text-slate-400">Whole number from 1 to 4096.</p>
             </div>
 
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <label htmlFor="temperature" className="mb-3 block text-[11px] uppercase tracking-[0.16em] text-slate-400">temperature</label>
-              <input
-                id="temperature"
-                aria-describedby="temperature-help"
-                type="text"
-                inputMode="decimal"
-                value={proposedTemperature}
-                onChange={(event) => setProposedTemperature(event.target.value)}
-                className="w-32 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white"
-              />
-              <p id="temperature-help" className="mt-2 text-xs text-slate-400">Number from 0 to 2.</p>
-            </div>
-
             <MetricTable
               metrics={{
                 ...(data.change.proposed_state as MetricSet),
                 max_tokens: proposedMaxTokens || "—",
-                temperature: proposedTemperature || "—",
               }}
             />
           </div>

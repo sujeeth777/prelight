@@ -15,9 +15,7 @@ const features = [
   ["Measured, not guessed", "Real inference requests against Nebius-hosted NVIDIA Nemotron. TTFT, P50/P95 latency, throughput and error rate."],
   ["Fail-closed by design", "Missing or incomplete evidence never passes. Incomplete runs resolve to BLOCK, not SAFE."],
   ["Paired statistics", "Baseline and candidate alternate order across rounds, so drift can't masquerade as regression."],
-  ["A/A noise control", "Prelight tests your config against itself to measure run-to-run noise, so a +6% blip isn't mistaken for a regression."],
-  ["Safe boundary explorer", "Scan a range of settings to find the highest value that still certifies SAFE, and see the cliff on a chart."],
-  ["Pull-request safety check", "A GitHub Action runs Prelight when configs/change.json changes and comments the verdict on the PR. BLOCK fails the check."],
+  ["Safe boundary explorer", "Scan a range of settings to find the highest value that still certifies SAFE."],
 ];
 
 const sweep = [
@@ -137,7 +135,7 @@ export default function Landing() {
 
         <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-16">
           <h2 className="text-3xl font-semibold tracking-tight">Built to be trusted</h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
             {features.map(([title, text]) => (
               <article key={title} className="rounded-2xl border border-white/[0.07] bg-[#0a0d12] p-6">
                 <h3 className="text-lg font-medium">{title}</h3>

@@ -143,5 +143,44 @@ class PairedValidationTests(unittest.TestCase):
         )
 
 
+class ModelSwapTests(unittest.TestCase):
+    def setUp(self):
+        self.change = {
+            "change_id": "SWAP",
+            "current_state": {"model": "nvidia/model-a", "max_tokens": 300},
+            "proposed_state": {"model": "nvidia/model-b", "max_tokens": 300},
+            "risk_policy": {
+                "warn_threshold_percent": 10,
+                "block_threshold_percent": 20,
+                "error_warn_threshold_percent": 1,
+                "error_block_threshold_percent": 5,
+            },
+        }
+
+    def decide(self, pairs):
+        return build_paired_decision(
+            self.change, {"risk_level": "MEDIUM"}, {"available": True}, pairs
+        )
+
+    def pairs(self, baseline_model, candidate_model):
+        pairs = make_pairs()
+        for pair in pairs:
+            pair["baseline_run"]["experiment"]["model"] = baseline_model
+            pair["candidate_run"]["experiment"]["model"] = candidate_model
+        return pairs
+
+    def test_declared_model_swap_is_accepted(self):
+        decision = self.decide(self.pairs("nvidia/model-a", "nvidia/model-b"))
+        self.assertNotIn("unexpected models", str(decision))
+
+    def test_candidate_using_wrong_model_fails_closed(self):
+        decision = self.decide(self.pairs("nvidia/model-a", "nvidia/model-a"))
+        self.assertEqual(decision["decision"]["status"], "BLOCK")
+
+    def test_undeclared_swap_fails_closed(self):
+        self.change["proposed_state"]["model"] = "nvidia/model-a"
+        decision = self.decide(self.pairs("nvidia/model-a", "nvidia/model-b"))
+        self.assertEqual(decision["decision"]["status"], "BLOCK")
+
 if __name__ == "__main__":
     unittest.main()

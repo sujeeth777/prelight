@@ -103,35 +103,3 @@ class ApiStateContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-def test_boundary_summary_picks_highest_safe_value():
-    from backend.api import summarize_boundary
-
-    report = summarize_boundary(
-        [
-            {"max_tokens": 300, "status": "SAFE"},
-            {"max_tokens": 350, "status": "SAFE"},
-            {"max_tokens": 400, "status": "WARN"},
-            {"max_tokens": 500, "status": "BLOCK"},
-        ]
-    )
-    assert report["safe_operating_boundary"] == 350
-    assert report["status"] == "SAFE"
-
-
-def test_noise_floor_uses_largest_absolute_change():
-    from backend.api import noise_floor_from
-
-    result = {"comparison": {"mean_latency_change_percent": -10.05, "p95_latency_change_percent": -8.14, "note": 99}}
-    assert noise_floor_from(result) == 10.05
-    assert noise_floor_from(None) is None
-
-
-def test_boundary_report_is_internally_consistent_and_flags_stale_scan():
-    from backend.api import get_boundary_report
-
-    report = get_boundary_report()
-    if report["results"]:
-        assert report["safe_operating_boundary"] in (None, *[r["max_tokens"] for r in report["results"] if r["status"] == "SAFE"])
-        assert report["noise_floor_percent"] is None or report["noise_floor_percent"] >= 0

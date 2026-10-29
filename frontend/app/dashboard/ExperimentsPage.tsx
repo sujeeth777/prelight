@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import { API_URL, ExperimentStatus, StateData, getComparisonValue, getNumericMetric, statusPanel } from "./lib";
 import { DetailPanel, ExperimentRow, MetricProgress, SectionHeader, ThresholdRow, ValueCard } from "./ui";
-import { BoundaryCurve, ChangeVsNoiseChart } from "./visuals";
 
 export function ExperimentsPage({
   data,
@@ -75,26 +74,6 @@ export function ExperimentsPage({
     }
   }, [experimentStatus, onRefresh]);
 
-  const noiseFloor = boundary?.noise_floor_percent ?? null;
-  const [aaLoading, setAaLoading] = useState(false);
-
-  const runAAControl = async () => {
-    setAaLoading(true);
-    setBoundaryMessage("Running A/A control (current config vs itself)...");
-    try {
-      const response = await fetch(`${API_URL}/api/aa-control`, { method: "POST" });
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result?.detail || "A/A control failed.");
-      }
-      setBoundaryMessage("A/A control complete. Noise floor updated.");
-      await onRefresh();
-    } catch (error) {
-      setBoundaryMessage(error instanceof Error ? error.message : "A/A control failed.");
-    } finally {
-      setAaLoading(false);
-    }
-  };
 
   const baselineMeanTtft = getNumericMetric(baseline, [
     "ttft_mean_ms",
@@ -208,18 +187,6 @@ export function ExperimentsPage({
     "p95_latency_percent",
   ]);
 
-  const uncertainty = data.decision.uncertainty ?? {};
-  const noiseRows = [
-    { label: "Mean TTFT", key: "mean_ttft_change_percent", value: meanTtftChange },
-    { label: "P95 TTFT", key: "p95_ttft_change_percent", value: p95TtftChange },
-    { label: "Mean latency", key: "mean_latency_change_percent", value: meanLatencyChange },
-    { label: "P95 latency", key: "p95_latency_change_percent", value: p95LatencyChange },
-  ].map((r) => ({
-    label: r.label,
-    value: r.value,
-    lower: uncertainty[r.key]?.lower_percent ?? null,
-    upper: uncertainty[r.key]?.upper_percent ?? null,
-  }));
 
   const successRateBaseline =
     baselineErrors === null ? null : 100 - baselineErrors;
@@ -321,58 +288,7 @@ export function ExperimentsPage({
         )}
       </DetailPanel>
 
-      <DetailPanel title="A/A noise control">
-        <p className="text-sm leading-6 text-slate-300">
-          A hosted model never returns identical timings twice. Prelight measures that noise by
-          testing the current configuration against itself; regressions smaller than this floor
-          cannot be told apart from run-to-run variation.
-        </p>
-        <div className="mt-4 flex flex-wrap items-center gap-4">
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400">Noise floor</div>
-            <div className="mt-1 text-2xl font-semibold">{noiseFloor === null ? "—" : `±${noiseFloor}%`}</div>
-          </div>
-          <button
-            onClick={runAAControl}
-            disabled={aaLoading || Boolean(experimentStatus?.running)}
-            className="rounded-lg border border-white/10 bg-white px-4 py-2 text-xs font-semibold text-black hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {aaLoading ? "Measuring…" : "Run A/A control"}
-          </button>
-        </div>
-        {boundary?.stale && (
-          <p role="note" className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.05] px-4 py-3 text-sm text-amber-200">
-            This boundary scan was saved before paired validation, so it has no confidence intervals.
-            Run &ldquo;Find Safe Boundary&rdquo; to refresh it.
-          </p>
-        )}
-      </DetailPanel>
 
-      <DetailPanel title="Change vs baseline, with 95% confidence intervals">
-        <ChangeVsNoiseChart
-          rows={noiseRows}
-          warn={data.change.risk_policy.warn_percent}
-          block={data.change.risk_policy.block_percent}
-          noise={noiseFloor}
-        />
-        <p className="mt-2 text-xs text-slate-400">Whiskers show the paired 95% interval. Shaded band is the A/A noise floor.</p>
-      </DetailPanel>
-
-      {boundary?.results && boundary.results.length > 0 && (
-        <DetailPanel title="Safe boundary curve">
-          <BoundaryCurve
-            points={boundary.results.map((r) => ({
-              max_tokens: r.max_tokens,
-              status: r.status,
-              value: getNumericMetric(r.comparison, ["mean_latency_change_percent"]),
-            }))}
-            warn={data.change.risk_policy.warn_percent}
-            block={data.change.risk_policy.block_percent}
-            noise={noiseFloor}
-            boundary={boundary.safe_operating_boundary}
-          />
-        </DetailPanel>
-      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <ValueCard
@@ -600,7 +516,6 @@ export function ExperimentsPage({
             value={meanTtftChange}
             blockThreshold={data.change.risk_policy.block_percent}
             warnThreshold={data.change.risk_policy.warn_percent}
-            noise={noiseFloor}
           />
 
           <ThresholdRow
@@ -608,7 +523,6 @@ export function ExperimentsPage({
             value={p95TtftChange}
             blockThreshold={data.change.risk_policy.block_percent}
             warnThreshold={data.change.risk_policy.warn_percent}
-            noise={noiseFloor}
           />
 
           <ThresholdRow
@@ -616,7 +530,6 @@ export function ExperimentsPage({
             value={meanLatencyChange}
             blockThreshold={data.change.risk_policy.block_percent}
             warnThreshold={data.change.risk_policy.warn_percent}
-            noise={noiseFloor}
           />
 
           <ThresholdRow
@@ -624,7 +537,6 @@ export function ExperimentsPage({
             value={p95LatencyChange}
             blockThreshold={data.change.risk_policy.block_percent}
             warnThreshold={data.change.risk_policy.warn_percent}
-            noise={noiseFloor}
           />
         </div>
       </DetailPanel>

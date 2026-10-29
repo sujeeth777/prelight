@@ -24,7 +24,6 @@ export default function Home() {
   const [validationMessage, setValidationMessage] = useState("");
   const [validationError, setValidationError] = useState("");
   const [proposedMaxTokens, setProposedMaxTokens] = useState<string>("500");
-  const [proposedTemperature, setProposedTemperature] = useState<string>("0.2");
   const [, setProposalDirty] = useState(false);
 
   const loadExperimentStatus = useCallback(async () => {
@@ -57,10 +56,6 @@ export default function Home() {
       const proposedMax = state?.change?.proposed_state?.max_tokens;
       if (typeof proposedMax === "number" && !proposalDirtyRef.current) {
         setProposedMaxTokens(String(proposedMax));
-      }
-      const proposedTemp = state?.change?.proposed_state?.temperature;
-      if (typeof proposedTemp === "number" && !proposalDirtyRef.current) {
-        setProposedTemperature(String(proposedTemp));
       }
       setError("");
       setLastUpdated(new Date());
@@ -96,12 +91,7 @@ export default function Home() {
       return;
     }
 
-    const parsedTemperature = Number(proposedTemperature);
-    if (proposedTemperature.trim() === "" || !Number.isFinite(parsedTemperature) || parsedTemperature < 0 || parsedTemperature > 2) {
-      setValidationError("Enter a temperature between 0 and 2.");
-      setValidationMessage("");
-      return;
-    }
+
 
     validationInFlight.current = true;
     setValidating(true);
@@ -118,7 +108,6 @@ export default function Home() {
         },
         body: JSON.stringify({
           max_tokens: parsedMaxTokens,
-          temperature: parsedTemperature,
         }),
       });
 
@@ -173,24 +162,46 @@ export default function Home() {
       validationInFlight.current = false;
       setValidating(false);
     }
-  }, [experimentStatus, loadExperimentStatus, loadState, proposedMaxTokens, proposedTemperature, validating]);
+  }, [experimentStatus, loadExperimentStatus, loadState, proposedMaxTokens, validating]);
+
+  const experimentRunningRef = useRef(false);
 
   useEffect(() => {
-    const first = window.setTimeout(() => {
-      loadState();
-      loadExperimentStatus();
-    }, 0);
+    experimentRunningRef.current = Boolean(experimentStatus?.running);
+  }, [experimentStatus]);
 
-    const interval = window.setInterval(() => {
-      if (!validationInFlight.current && !proposalDirtyRef.current) {
-        loadState();
+  // Adaptive polling: fast while an experiment runs, slow when idle, and
+  // paused entirely while the tab is hidden.
+  useEffect(() => {
+    let stopped = false;
+    let timer = 0;
+
+    const tick = () => {
+      if (stopped) return;
+      if (!document.hidden) {
+        if (!validationInFlight.current && !proposalDirtyRef.current) {
+          loadState();
+        }
+        loadExperimentStatus();
       }
-      loadExperimentStatus();
-    }, 2500);
+      const busy = validationInFlight.current || experimentRunningRef.current;
+      timer = window.setTimeout(tick, busy ? 2500 : 10000);
+    };
+
+    const onVisibility = () => {
+      if (!document.hidden) {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(tick, 0);
+      }
+    };
+
+    timer = window.setTimeout(tick, 0);
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      window.clearTimeout(first);
-      window.clearInterval(interval);
+      stopped = true;
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [loadExperimentStatus, loadState]);
 
@@ -497,12 +508,6 @@ export default function Home() {
             {activePage === "change" && (
               <ChangePage
                 data={data}
-                proposedTemperature={proposedTemperature}
-                setProposedTemperature={(value) => {
-                  setProposedTemperature(value);
-                  proposalDirtyRef.current = true;
-                  setProposalDirty(true);
-                }}
                 proposedMaxTokens={proposedMaxTokens}
                 setProposedMaxTokens={(value) => {
                   setProposedMaxTokens(value);
